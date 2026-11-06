@@ -22,6 +22,38 @@
 <section id="recovery"><div class="card"><h2>Recovery Centre</h2><p class="muted">Choose a body area on the front or back diagram. You can log multiple soreness points independently.</p><div class="bodymap" id="bodymaps"></div><p class="muted" id="areaChosen">Selected: none</p><div id="headWarning" class="warn hidden"><strong>Head injury: seek medical assessment</strong><p>PitchPulse does not monitor concussions or provide return-to-play clearance. If a concussion or head injury is suspected, stop playing and seek prompt medical assessment. For emergency symptoms in Australia call 000.</p></div><div id="injuryForm"><label>Side / location</label><select id="injurySide"><option>Left</option><option>Right</option><option>Centre</option><option>Both</option></select><label>Issue type</label><select id="injuryType"><option>General soreness</option><option>Muscle tightness</option><option>Strain / pull</option><option>Sprain / roll</option><option>Contusion / corky</option><option>Joint pain</option><option>Stiffness</option><option>Other / unsure</option></select><label>Discomfort (0–10)</label><input id="injuryPain" type="range" min="0" max="10" value="3" oninput="document.getElementById('painValue').textContent=this.value"><span id="painValue" class="accent">3</span><label>Notes</label><textarea id="injuryNotes" rows="3" placeholder="What happened, what makes it worse, advice from physio..."></textarea><button onclick="addInjury()">Save recovery entry</button></div></div><div class="card"><h3>Recovery history</h3><div id="injuryHistory"></div></div></section>
 </main><nav id="nav"><button class="active" data-page="overview">⌂<br>Home</button><button data-page="training">▣<br>Training</button><button data-page="running">↗<br>Running</button><button data-page="soccer">⚽<br>Soccer</button><button data-page="recovery">♡<br>Recovery</button></nav>
 <script>
+// v8.2.1: Independent Strava status check. Runs even if dashboard initialization fails.
+(function () {
+  async function checkConnection() {
+    const status = document.getElementById('stravaStatus');
+    const connect = document.getElementById('connectStrava');
+    if (!status || !connect) return;
+    try {
+      const response = await fetch('/api/status', {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        signal: AbortSignal.timeout(15000)
+      });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = await response.json();
+      status.textContent = data.connected
+        ? 'Connected to Strava' + (data.athlete_name ? ' as ' + data.athlete_name : '')
+        : (data.configured ? 'Not connected — tap Connect Strava'
+                           : 'Strava integration is not configured on the server');
+      connect.disabled = !data.configured || !!data.connected;
+    } catch (error) {
+      status.textContent = 'Could not check Strava connection. Please retry or check the server.';
+      connect.disabled = false;
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkConnection, {once: true});
+  } else {
+    checkConnection();
+  }
+})();
+</script>
+<script>
 const key='pitchpulse_v1';let db;try{db=JSON.parse(localStorage.getItem(key))||{runs:[],matches:[],injuries:[],workouts:[],done:{}}}catch(e){db={runs:[],matches:[],injuries:[],workouts:[],done:{}}}const save=()=>{localStorage.setItem(key,JSON.stringify(db));render()};const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const num=id=>Number($(id).value);const pace=v=>{let sec=Math.round(v*60);return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')};const today=new Date().toISOString().slice(0,10);['runDate','matchDate'].forEach(x=>$(x).value=today);
 $('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll('section').forEach(s=>s.classList.toggle('active',s.id===b.dataset.page));document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x===b));$('pageTitle').textContent=({overview:'Overview',training:'Training',running:'Running',soccer:'Match Centre',recovery:'Recovery'})[b.dataset.page]});
 function addRun(){let km=num('runKm'),min=num('runMin');if(!(km>0&&min>0))return alert('Enter a valid distance and time.');db.runs.unshift({date:$('runDate').value,name:$('runName').value.trim()||'Manual Run',km,min,source:'Manual'});save();$('runKm').value='';$('runMin').value='';$('runName').value=''}
@@ -88,7 +120,7 @@ const v5OriginalRender=render;
 render=function(){v5OriginalRender();if($('runChartYear'))drawV5Dashboards();};
 refreshV5();
 
-stravaStatus();
+// Initial Strava status is checked independently above.
 if ('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')) {window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
 
 // v6: estimates are suggestions only; no GPS coordinates are persisted.
