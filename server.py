@@ -225,11 +225,11 @@ def activity_streams(activity_id):
         activity = detail.json()
         if str((activity.get('athlete') or {}).get('id', '')) != str(obj.get('athlete_id', '')):
             return fail('Activity does not belong to this athlete.', 403)
-        if activity.get('sport_type') != 'Soccer':
-            return fail('Match breakdown is available for Soccer activities.', 400)
+        if activity.get('sport_type') not in ('Soccer', 'Run'):
+            return fail('GPS visualisation is available for Run and Soccer activities.', 400)
         r = requests.get(f'{STRAVA_API}/activities/{activity_id}/streams',
             headers={'Authorization': 'Bearer ' + obj['access_token']},
-            params={'keys':'time,distance,velocity_smooth','key_by_type':'true'}, timeout=25)
+            params={'keys':'time,distance,velocity_smooth,latlng','key_by_type':'true'}, timeout=25)
         if r.status_code == 429:
             return fail('Strava rate limit reached. Retry later.', 429)
         if r.status_code in (401,403,404):
@@ -239,7 +239,7 @@ def activity_streams(activity_id):
         if not isinstance(streams, dict):
             return fail('Unexpected Strava stream format.', 502)
         result = {}
-        for key in ('time', 'distance', 'velocity_smooth'):
+        for key in ('time', 'distance', 'velocity_smooth', 'latlng'):
             item = streams.get(key) or {}
             data = item.get('data') if isinstance(item, dict) else None
             if isinstance(data, list):
@@ -248,6 +248,7 @@ def activity_streams(activity_id):
             return fail('Timestamped distance data is unavailable for this recording.', 422)
         response = jsonify(streams=result, activity_id=activity_id,
                            elapsed_seconds=activity.get('elapsed_time'))
+        response.headers['Cache-Control'] = 'no-store'
         return set_cookie(response, obj)
     except (requests.RequestException, ValueError):
         return fail('Unable to retrieve Strava GPS streams.', 502)
