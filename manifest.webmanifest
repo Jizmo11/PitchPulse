@@ -1,1 +1,24 @@
-{"name":"PitchPulse — Soccer Performance","short_name":"PitchPulse","description":"Training, running, match tracking and recovery","start_url":"./index.html","scope":"./","display":"standalone","background_color":"#101c2b","theme_color":"#142333","icons":[{"src":"./icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},{"src":"./icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}
+{
+  "name": "PitchPulse \u2014 Soccer Performance",
+  "short_name": "PitchPulse",
+  "description": "Training, running, match tracking and recovery",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#101010",
+  "theme_color": "#171717",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
