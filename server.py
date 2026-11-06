@@ -204,6 +204,55 @@ def activities():
     return set_cookie(response, obj)
 
 
+@app.get('/api/activities/<int:activity_id>/streams')
+def activity_streams(activity_id):
+    """Private, same-origin GPS stream proxy; never persist coordinates on server."""
+    obj = token_cookie()
+    if not obj:
+        return fail('Connect Strava first.', 401)
+    obj = refresh_token(obj)
+    if not obj:
+        return fail('Strava session expired. Reconnect.', 401)
+    try:
+        # Verify the activity belongs to the connected athlete before fetching streams.
+        detail = requests.get(f'{STRAVA_API}/activities/{activity_id}',
+            headers={'Authorization': 'Bearer ' + obj['access_token']}, timeout=20)
+        if detail.status_code == 429:
+            return fail('Strava rate limit reached. Retry later.', 429)
+        if detail.status_code in (401, 403, 404):
+            return fail('Activity is unavailable to this Strava account.', 403)
+        detail.raise_for_status()
+        activity = detail.json()
+        if str((activity.get('athlete') or {}).get('id', '')) != str(obj.get('athlete_id', '')):
+            return fail('Activity does not belong to this athlete.', 403)
+        if activity.get('sport_type') != 'Soccer':
+            return fail('Match breakdown is available for Soccer activities.', 400)
+        r = requests.get(f'{STRAVA_API}/activities/{activity_id}/streams',
+            headers={'Authorization': 'Bearer ' + obj['access_token']},
+            params={'keys':'time,distance,velocity_smooth','key_by_type':'true'}, timeout=25)
+        if r.status_code == 429:
+            return fail('Strava rate limit reached. Retry later.', 429)
+        if r.status_code in (401,403,404):
+            return fail('GPS streams unavailable for this activity.', 404)
+        r.raise_for_status()
+        streams = r.json()
+        if not isinstance(streams, dict):
+            return fail('Unexpected Strava stream format.', 502)
+        result = {}
+        for key in ('time', 'distance', 'velocity_smooth'):
+            item = streams.get(key) or {}
+            data = item.get('data') if isinstance(item, dict) else None
+            if isinstance(data, list):
+                result[key] = data[:25000]
+        if len(result.get('time', [])) < 2 or len(result.get('distance', [])) != len(result['time']):
+            return fail('Timestamped distance data is unavailable for this recording.', 422)
+        response = jsonify(streams=result, activity_id=activity_id,
+                           elapsed_seconds=activity.get('elapsed_time'))
+        return set_cookie(response, obj)
+    except (requests.RequestException, ValueError):
+        return fail('Unable to retrieve Strava GPS streams.', 502)
+
+
 @app.post('/api/disconnect')
 def disconnect():
     # Same-origin POST only: avoid cross-site logout requests.
