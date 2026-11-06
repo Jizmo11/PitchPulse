@@ -101,6 +101,7 @@ def headers(resp):
 
 
 @app.get('/')
+@app.get('/index.html')
 def home():
     return send_from_directory(ROOT, 'index.html')
 
