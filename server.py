@@ -111,6 +111,11 @@ def manifest():
     return send_from_directory(ROOT, 'manifest.webmanifest', mimetype='application/manifest+json')
 
 
+@app.get('/backup.js')
+def backup_script():
+    return send_from_directory(ROOT, 'backup.js', mimetype='application/javascript')
+
+
 @app.get('/sw.js')
 def worker():
     return send_from_directory(ROOT, 'sw.js', mimetype='application/javascript')
