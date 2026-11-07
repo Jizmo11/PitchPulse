@@ -90,7 +90,7 @@ async function syncStrava(){const el=$('stravaStatus');el.textContent='Importing
 let currentStreams=null;
 function breakMatches(){return db.matches.filter(m=>m.stravaId)}
 function refreshBreakList(){const sel=$('breakMatch');if(!sel)return;const old=sel.value;sel.innerHTML='<option value="">Choose an imported soccer activity</option>'+breakMatches().filter(m=>filteredSoccer().some(x=>x.m===m)).map(m=>`<option value="${esc(String(m.stravaId))}">${esc(m.date+' · '+m.name)}</option>`).join('');if(breakMatches().filter(m=>filteredSoccer().some(x=>x.m===m)).some(m=>String(m.stravaId)===old))sel.value=old;else if(old)breakSelect();}
-function breakSelect(){v6Clear();calculatedBreakdown=null;currentStreams=null;$('breakEditor').classList.add('hidden');$('breakStatus').textContent='Tap Load GPS data. Existing saved boundaries will appear.';}
+function breakSelect(){v6Clear();calculatedBreakdown=null;currentStreams=null;$('breakEditor').classList.add('hidden');$('breakStatus').textContent='Loading GPS data for selected match…';if($('breakMatch').value)loadBreakStreams();}
 function breakActivity(){return db.matches.find(m=>String(m.stravaId)===$('breakMatch').value)}
 function timeFmt(sec){let n=Math.round(Number(sec)||0);return Math.floor(n/60)+':'+String(n%60).padStart(2,'0')}
 function parseOffset(s){const match=/^(\d{1,3}):(\d{2})$/.exec(s.trim());if(!match||Number(match[2])>=60)return NaN;return Number(match[1])*60+Number(match[2]);}
