@@ -283,7 +283,8 @@ def dribl_fixtures():
     try:
         tenant_response = requests.get('https://mc-api.dribl.com/api/tenants',
             params={'mc_link':'csl.dribl.com','slug':'csl'}, timeout=12)
-        if not tenant_response.ok:\n            return fail('Dribl tenant lookup returned HTTP ' + str(tenant_response.status_code), 502)
+        if not tenant_response.ok:
+            return fail('Dribl tenant lookup returned HTTP ' + str(tenant_response.status_code), 502)
         raw_tenant = tenant_response.json()
         def find_tenant(value):
             if isinstance(value, dict):
