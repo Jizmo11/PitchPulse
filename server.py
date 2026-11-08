@@ -276,5 +276,47 @@ def disconnect():
     return response
 
 
+
+# Read-only Dribl fixture proxy. No arbitrary upstream URL or user-supplied host.
+@app.get('/api/dribl/fixtures')
+def dribl_fixtures():
+    try:
+        tenant_response = requests.get('https://mc-api.dribl.com/api/tenants',
+            params={'mc_link':'csl.dribl.com','slug':'csl'}, timeout=12)
+        tenant_response.raise_for_status()
+        raw_tenant = tenant_response.json()
+        def find_tenant(value):
+            if isinstance(value, dict):
+                if isinstance(value.get('id'), str) and value.get('id'):
+                    return value['id']
+                for key in ('data','tenant'):
+                    if key in value:
+                        found = find_tenant(value[key])
+                        if found: return found
+            if isinstance(value, list):
+                for item in value:
+                    found = find_tenant(item)
+                    if found: return found
+            return None
+        tenant = find_tenant(raw_tenant)
+        if not tenant:
+            return fail('Dribl CSL tenant ID could not be resolved.', 502)
+        params = {'date_range':'all','season':'k2Kp4R8KY5',
+            'competition':'2PmjOYnjNZ','league':'njdyY34Ad5',
+            'club':'8BdVrJ5dE5','tenant':tenant,'timezone':'Australia/Adelaide'}
+        response = requests.get('https://mc-api.dribl.com/api/fixtures',
+            params=params, timeout=20)
+        response.raise_for_status()
+        payload = response.json()
+        if not isinstance(payload, dict) or not isinstance(payload.get('data'), list):
+            return fail('Dribl returned an unexpected fixture format.', 502)
+        result = jsonify(source='Dribl CSL',read_only=True,
+            fixtures=payload['data'][:100],more=bool(payload.get('links',{}).get('next')) if isinstance(payload.get('links'),dict) else False)
+        result.headers['Cache-Control']='no-store'
+        return result
+    except (requests.RequestException, ValueError, TypeError):
+        return fail('Live Dribl fixture request failed. Please retry later.', 502)
+
+
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=10000)
