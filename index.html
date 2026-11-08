@@ -77,7 +77,7 @@ function setupSoccerFilters(){const y=$('soccerYear'),mo=$('soccerMonth');if(!y|
 function filteredRuns(){const y=$('runChartYear')?.value||'all',mo=$('runChartMonth')?.value||'all';return db.runs.map((r,i)=>({r,i})).filter(({r})=>(y==='all'||String(r.date||'').slice(0,4)===y)&&(mo==='all'||String(r.date||'').slice(5,7)===mo));}
 function v5Months(){const el=$('runChartMonth');if(!el||el.options.length>1)return;for(let i=1;i<=12;i++){const opt=document.createElement('option');opt.value=String(i).padStart(2,'0');opt.textContent=new Date(2024,i-1,1).toLocaleString('en-AU',{month:'long'});el.append(opt);}}
 function updateV5Filters(){render();drawV5Dashboards();}
-function updateSoccerFilters(){render();drawV5Dashboards();if(typeof refreshBreakList==='function')refreshBreakList();}
+function updateSoccerFilters(){render();drawV5Dashboards();if(typeof refreshBreakList==='function')refreshBreakList();window.dispatchEvent(new Event('pitchpulse:soccer-filters-changed'));}
 function render(){const runs=filteredRuns(),soccer=filteredSoccer(),runItems=runs.map(x=>x.r),soccerItems=soccer.map(x=>x.m);const dist=runItems.reduce((a,b)=>a+(Number(b.km)||0),0),mins=runItems.reduce((a,b)=>a+(Number(b.min)||0),0),md=soccerItems.reduce((a,b)=>a+(Number(b.km)||0),0);$('runCount').textContent=runItems.length;$('runDistance').textContent=dist.toFixed(1);$('runAvg').textContent=dist>0?pace(mins/dist):'—';$('matchDistance').textContent=md.toFixed(1);$('matchAvg').textContent=soccerItems.length?(md/soccerItems.length).toFixed(2):'—';$('matchTop').textContent=soccerItems.length?Math.max(...soccerItems.map(m=>Number(m.top)||0)).toFixed(1):'—';$('soccerSessionCount').textContent=soccerItems.length;$('soccerSessionLabel').textContent=($('soccerType')?.value==='match'?'Matches':$('soccerType')?.value==='training'?'Trainings':'Sessions');$('runHistory').innerHTML=runs.map(({r,i})=>`<div class="item row"><span class="v7-history-tap" role="button" tabindex="0" onclick="v7SelectHistory('run',${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();v7SelectHistory('run',${i})}"><b>${esc(r.name||'Run')}</b><br><span class="muted">${v81Date(r.date)}</span><br><span class="muted">${Number(r.km).toFixed(2)} km · ${r.km>0?pace(r.min/r.km):'—'} min/km · ${esc(r.source||'Manual')}</span></span><button class="secondary smallbtn" onclick="del('runs',${i})">Delete</button></div>`).join('')||'<p class="muted">No runs for the selected period.</p>';$('v7RunHistoryCount').textContent='('+runs.length+')';$('v7SoccerHistoryCount').textContent='('+soccer.length+')';$('soccerFilterCount').textContent=soccer.length+' of '+db.matches.length+' soccer sessions shown';$('matchHistory').innerHTML=soccer.map(({m,i})=>`<div class="item row"><span class="v7-history-tap" role="button" tabindex="0" onclick="v7SelectHistory('soccer',${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();v7SelectHistory('soccer',${i})}"><b>${esc(m.name)}</b> <span class="pill">${soccerKind(m)==='match'?'Match':'Training'}</span><br><span class="muted">${v81Date(m.date)} · ${m.stravaId && Number(m.elapsedMin)>0 ? Math.round(Number(m.elapsedMin)) + ' min recorded' : m.format + ' min match format'} · ${Number(m.km).toFixed(2)} km · Avg ${Number(m.avg).toFixed(2)} km/h · Top ${Number(m.top).toFixed(2)} km/h · ${esc(m.source||'Manual')}</span></span>${soccerKind(m)==='match'?`<button class="secondary smallbtn" onclick="v82EditContributions(${i})">⚽ G/A</button>`:''}<button class="secondary smallbtn" onclick="del('matches',${i})">Delete</button></div>`).join('')||'<p class="muted">No soccer sessions for the selected filters.</p>';$('injuryHistory').innerHTML=db.injuries.map((m,i)=>`<div class="item row"><span><b>${esc(m.side)} ${esc(m.area)}${m.view?' ('+esc(m.view)+')':''}</b><br><span class="muted">${esc(m.date)} · ${esc(m.type)} · ${m.pain}/10</span><br><span class="muted">${esc(m.notes)}</span></span><button class="secondary smallbtn" onclick="del('injuries',${i})">Delete</button></div>`).join('')||'<p class="muted">No recovery entries yet.</p>';$('workouts').innerHTML=db.workouts.map((w,i)=>`<div class="item row"><span><b>${esc(w.name)}</b><br><span class="muted">${esc(w.notes)}</span></span><button class="secondary smallbtn" onclick="del('workouts',${i})">Delete</button></div>`).join('');let w=$('week').value||'1';$('sessions').innerHTML=days.map((d,i)=>{let k=w+'-'+i;return `<div class="item"><label style="display:flex;align-items:center;gap:12px;font-size:15px"><input type="checkbox" style="width:20px;margin:0" ${db.done[k]?'checked':''} onchange="db.done['${k}']=this.checked;save()">${d}</label></div>`}).join('')}
 setupSoccerFilters();render();
 
@@ -160,6 +160,30 @@ function v7SelectHistory(kind,index){const item=(kind==='run'?db.runs:db.matches
 el.innerHTML=`<b>Selected activity: ${esc(item.name||item.date)}</b><p class="muted">${esc(item.date)} · ${metrics}</p><button class="secondary" onclick="v7ClearFocus()">Back to season overview</button>`;
 if(item.stravaId){const id=isRun?'runDetailSelect':'soccerDetailSelect';$(id).value=String(item.stravaId);if($(id).value)loadV5Detail(kind);if(!isRun){const b=$('breakMatch');if(b){b.value=String(item.stravaId);if(b.value)breakSelect();}}}else{const status=$(isRun?'runDetailStatus':'soccerDetailStatus');status.textContent='Manual activity: no Strava GPS stream available.';$(isRun?'runDetailView':'soccerDetailView').innerHTML='';}
 el.scrollIntoView({behavior:'smooth',block:'start'});}
+// Keep both GPS views aligned with the Soccer dashboard's selected Strava match.
+function v84SyncSelectedSoccerGps(item){
+ const gps=$('soccerDetailSelect'),breakdown=$('breakMatch');
+ if(!gps||!breakdown)return;
+ const id=item?.stravaId?String(item.stravaId):'';
+ if(!id){
+  gps.value='';breakdown.value='';
+  $('soccerDetailView').innerHTML='';
+  $('soccerDetailStatus').textContent='No Strava GPS recording for this selection.';
+  if(typeof v6Clear==='function')v6Clear();
+  $('breakEditor').classList.add('hidden');
+  $('breakStatus').textContent='No Strava GPS recording for this selection.';
+  return;
+ }
+ if(gps.value!==id){
+  gps.value=id;
+  if(gps.value)loadV5Detail('soccer');
+ }
+ if(breakdown.value!==id){
+  breakdown.value=id;
+  if(breakdown.value)breakSelect();
+ }
+}
+window.addEventListener('pitchpulse:soccer-selected',event=>v84SyncSelectedSoccerGps(event.detail));
 function v7LockSliders(){halfIds.forEach((id,i)=>{const input=$(id+'Slider'),btn=$(id+'Unlock');if(input)input.disabled=true;if(btn){btn.textContent='Unlock to adjust';btn.setAttribute('aria-pressed','false');}});}
 function v7ToggleSlider(i){const id=halfIds[i],input=$(id+'Slider'),btn=$(id+'Unlock');if(!input||!btn)return;const unlock=input.disabled;v7LockSliders();input.disabled=!unlock;btn.textContent=unlock?'Done · lock slider':'Unlock to adjust';btn.setAttribute('aria-pressed',String(unlock));}
 function v7SprintMetrics(st,bounds){const t=st?.time,v=st?.velocity_smooth,d=st?.distance;if(!Array.isArray(t)||!Array.isArray(v)||t.length!==v.length)return null;const raw=v.map(x=>Number(x)*3.6);const speeds=raw.map((_,i)=>{const part=raw.slice(Math.max(0,i-2),Math.min(raw.length,i+3)).filter(x=>Number.isFinite(x)&&x>=0&&x<=45).sort((a,b)=>a-b);return part.length?part[Math.floor(part.length/2)]:0;});const valid=speeds.filter((x,i)=>((t[i]>=bounds[0]&&t[i]<=bounds[1])||(t[i]>=bounds[2]&&t[i]<=bounds[3]))&&x>=0);if(!valid.length)return null;const sorted=[...valid].sort((a,b)=>a-b);const reference=sorted[Math.min(sorted.length-1,Math.floor(sorted.length*.995))];const sprintThreshold=20,maxEffortThreshold=Math.max(sprintThreshold,reference*.9);let sprints=0,maxEfforts=0,meters=0,active=false,effort=false,start=0,last=0,peak=0,dist=0;
