@@ -262,10 +262,21 @@ function v82Home(){const plans=Array.isArray(db.trainingPlans)?db.trainingPlans:
  const year=now.getFullYear().toString(),matches=(Array.isArray(db.matches)?db.matches:[]).filter(m=>soccerKind(m)==='match'&&String(m.date||'').slice(0,4)===year),goals=matches.reduce((a,m)=>a+(Number(m.goals)||0),0),assists=matches.reduce((a,m)=>a+(Number(m.assists)||0),0),bestDist=Math.max(0,...matches.map(m=>Number(m.km)||0)),topSpeed=Math.max(0,...matches.map(m=>Number(m.top)||0)),bestGA=matches.slice().sort((a,b)=>((Number(b.goals)||0)+(Number(b.assists)||0))-((Number(a.goals)||0)+(Number(a.assists)||0))||String(b.date).localeCompare(String(a.date)))[0];
  $('v82SoccerHome').innerHTML=`<p class="muted">${year} match statistics</p><div class="v82-home-grid">${v82Stat('Matches',matches.length)}${v82Stat('Goals / Assists',goals+' / '+assists)}${v82Stat('Season best G+A',bestGA?String((Number(bestGA.goals)||0)+(Number(bestGA.assists)||0))+' · '+(Number(bestGA.goals)||0)+'G '+(Number(bestGA.assists)||0)+'A':'—')}${v82Stat('Best match distance',bestDist.toFixed(2)+' km')}${v82Stat('Top recorded speed',topSpeed?topSpeed.toFixed(1)+' km/h':'—')}</div><p class="muted">${goals+assists} goal contributions recorded this season.</p>`;
 }
-function v82SoccerTotals(){const matches=filteredSoccer().filter(x=>soccerKind(x.m)==='match'),goals=matches.reduce((a,x)=>a+(Number(x.m.goals)||0),0),assists=matches.reduce((a,x)=>a+(Number(x.m.assists)||0),0);$('v82Goals').textContent=goals;$('v82Assists').textContent=assists;$('v82Contrib').textContent=goals+assists;
-const scored=matches.filter(({m})=>(Number(m.goals)||0)>0||(Number(m.assists)||0)>0).sort((a,b)=>String(b.m.date||'').localeCompare(String(a.m.date||'')));
-$('v82ContribMatchCount').textContent='('+scored.length+')';
-$('v82ContribMatches').innerHTML=scored.length?scored.map(({m,i})=>'<div class="item row" style="align-items:center;gap:8px"><div style="flex:1;min-width:0"><strong>'+esc(m.date||'')+' · '+esc(m.name||m.opponent||'Match')+'</strong><div class="muted">'+(Number(m.goals)||0)+' goals · '+(Number(m.assists)||0)+' assists</div></div><button class="secondary smallbtn" type="button" onclick="v7SelectHistory(\\'soccer\\','+i+')">View match</button></div>').join(''):'<p class="muted">No goals or assists recorded for the selected filters.</p>';
+function v82SoccerTotals(){
+ const v84=(()=>{try{return JSON.parse(localStorage.getItem('pitchpulse_v84')||'{}')}catch{return {}}})();
+ const records=filteredSoccer().filter(x=>soccerKind(x.m)==='match').map(({m,i})=>{
+  const id=m.stravaId?'strava:'+m.stravaId:'manual:'+m.date+':'+(m.name||m.opponent||'Soccer activity');
+  const f=(v84.fixtures||[]).find(x=>v84.links?.[x.id]===id);
+  const g=f&&v84.goals?.[f.id]!==undefined?Number(v84.goals[f.id]):Number(m.goals)||0;
+  const a=f&&v84.assists?.[f.id]!==undefined?Number(v84.assists[f.id]):Number(m.assists)||0;
+  return {m,i,g,a};
+ });
+ const goals=records.reduce((n,x)=>n+x.g,0),assists=records.reduce((n,x)=>n+x.a,0);
+ $('v82Goals').textContent=goals;$('v82Assists').textContent=assists;$('v82Contrib').textContent=goals+assists;
+ const scored=records.filter(x=>x.g>0||x.a>0).sort((a,b)=>String(b.m.date||'').localeCompare(String(a.m.date||'')));
+ $('v82ContribMatchCount').textContent='('+scored.length+')';
+ $('v82ContribMatches').innerHTML=scored.length?scored.map(({m,i,g,a})=>'<div class="item row" style="align-items:center;gap:8px"><div style="flex:1;min-width:0"><strong>'+esc(m.date||'')+' · '+esc(m.name||m.opponent||'Match')+'</strong><div class="muted">'+g+' goals · '+a+' assists</div></div><button class="secondary smallbtn" type="button" data-contrib-match="'+i+'">View match</button></div>').join(''):'<p class="muted">No goals or assists recorded for the selected filters.</p>';
+ $('v82ContribMatches').querySelectorAll('[data-contrib-match]').forEach(btn=>btn.onclick=()=>v7SelectHistory('soccer',Number(btn.dataset.contribMatch)));
 }
 const v82PreviousRender=render;render=function(){v82PreviousRender();v82Home();v82SoccerTotals();};render();
 </script><script>
