@@ -183,34 +183,41 @@ function v84TrialVenue(item){
 }
 function v84GeographicPitch(canvas,st,item,period,venue){
  const raw=st.latlng||[],times=st.time||[],ctx=canvas.getContext('2d'),W=560,H=365;
+ // North-up: north goal at the top, east touchline on the right, as on Satellite.
+ // Keep geographic dimensions proportional (62 m across, 103 m down).
+ const top=20,height=325,width=height*venue.width/venue.length,left=(W-width)/2,right=left+width,bottom=top+height,cx=W/2,cy=top+height/2;
  canvas.width=W;canvas.height=H;ctx.fillStyle='#15191c';ctx.fillRect(0,0,W,H);
- for(let i=0;i<10;i++){ctx.fillStyle=i%2?'#ffffff07':'#ffffff02';ctx.fillRect(20+i*52,20,52,325);}
- ctx.strokeStyle='#a9b1b6';ctx.lineWidth=1.4;ctx.strokeRect(20,20,520,325);
- ctx.beginPath();ctx.moveTo(280,20);ctx.lineTo(280,345);ctx.stroke();
- ctx.beginPath();ctx.arc(280,182.5,48,0,Math.PI*2);ctx.stroke();
- ctx.strokeRect(20,93,88,180);ctx.strokeRect(452,93,88,180);
- ctx.strokeRect(20,133,32,100);ctx.strokeRect(508,133,32,100);
+ for(let i=0;i<8;i++){ctx.fillStyle=i%2?'#ffffff07':'#ffffff02';ctx.fillRect(left+i*width/8,top,width/8,height);}
+ ctx.strokeStyle='#a9b1b6';ctx.lineWidth=1.4;ctx.strokeRect(left,top,width,height);
+ ctx.beginPath();ctx.moveTo(left,cy);ctx.lineTo(right,cy);ctx.stroke();
+ ctx.beginPath();ctx.arc(cx,cy,Math.min(width/6,25),0,Math.PI*2);ctx.stroke();
+ const boxWidth=width*40.32/venue.width,boxDepth=height*16.5/venue.length;
+ const goalWidth=width*18.32/venue.width,goalDepth=height*5.5/venue.length;
+ ctx.strokeRect(cx-boxWidth/2,top,boxWidth,boxDepth);
+ ctx.strokeRect(cx-boxWidth/2,bottom-boxDepth,boxWidth,boxDepth);
+ ctx.strokeRect(cx-goalWidth/2,top,goalWidth,goalDepth);
+ ctx.strokeRect(cx-goalWidth/2,bottom-goalDepth,goalWidth,goalDepth);
  const rad=Math.PI/180,origin=venue.nw,latFactor=111195,lonFactor=111195*Math.cos(origin[0]*rad);
  const xy=p=>[(p[1]-origin[1])*lonFactor,(p[0]-origin[0])*latFactor];
- const a=xy(venue.sw),c=xy(venue.ne),det=a[0]*c[1]-a[1]*c[0];
+ const south=xy(venue.sw),east=xy(venue.ne),det=south[0]*east[1]-south[1]*east[0];
  if(Math.abs(det)<1e-4)return false;
  const T=Number(times.at(-1))||0,b=Array.isArray(item?.halfBounds)&&item.halfBounds.length===4?item.halfBounds:[0,T/2,T/2,T];
  const ranges=period===1?[[b[0],b[1]]]:period===2?[[b[2],b[3]]]:[[b[0],b[1]],[b[2],b[3]]];
- ctx.save();ctx.beginPath();ctx.rect(20,20,520,325);ctx.clip();
+ ctx.save();ctx.beginPath();ctx.rect(left,top,width,height);ctx.clip();
  ctx.strokeStyle='#b7f36b';ctx.lineWidth=1.3;ctx.globalAlpha=.88;ctx.beginPath();
- let drawing=false,count=0;
+ let drawing=false;
  for(let i=0;i<raw.length;i++){
   const p=raw[i],t=Number(times[i]);
   if(!Array.isArray(p)||p.length<2||!Number.isFinite(+p[0])||!Number.isFinite(+p[1])||!ranges.some(r=>t>=r[0]&&t<=r[1])){drawing=false;continue;}
-  const v=xy(p),u=(v[0]*c[1]-v[1]*c[0])/det,w=(a[0]*v[1]-a[1]*v[0])/det;
-  // Longitude/latitude mapped to fixed pitch corners: no GPS-based stretching or rotation.
-  const x=20+u*520,y=20+w*325;
-  if(!Number.isFinite(x)||!Number.isFinite(y)||x<20||x>540||y<20||y>345){drawing=false;continue;}
+  const v=xy(p),southFraction=(v[0]*east[1]-v[1]*east[0])/det,eastFraction=(south[0]*v[1]-south[1]*v[0])/det;
+  // Same original latitude/longitude as Satellite: east increases right, south increases down.
+  const x=left+eastFraction*width,y=top+southFraction*height;
+  if(!Number.isFinite(x)||!Number.isFinite(y)||x<left||x>right||y<top||y>bottom){drawing=false;continue;}
   if(!drawing)ctx.moveTo(x,y);else ctx.lineTo(x,y);
-  drawing=true;count++;
+  drawing=true;
  }
  ctx.stroke();ctx.restore();ctx.fillStyle='#cbd1d4';ctx.font='12px system-ui';
- ctx.fillText('Campbelltown Pitch 2 · provisional geo calibration',26,360);
+ ctx.fillText('Campbelltown Pitch 2 · north-up provisional calibration',26,360);
  return true;
 }
 function v84PitchRoute(canvas,st,item,period){const venue=v84TrialVenue(item);if(venue&&v84GeographicPitch(canvas,st,item,period,venue))return;const pts=v6Project(st),ctx=canvas.getContext('2d'),W=560,H=365;canvas.width=W;canvas.height=H;ctx.fillStyle='#15191c';ctx.fillRect(0,0,W,H);for(let i=0;i<10;i++){ctx.fillStyle=i%2?'#ffffff07':'#ffffff02';ctx.fillRect(20+i*52,20,52,325);}ctx.strokeStyle='#a9b1b6';ctx.lineWidth=1.4;ctx.strokeRect(20,20,520,325);ctx.beginPath();ctx.moveTo(280,20);ctx.lineTo(280,345);ctx.stroke();ctx.beginPath();ctx.arc(280,182.5,48,0,Math.PI*2);ctx.stroke();ctx.strokeRect(20,93,88,180);ctx.strokeRect(452,93,88,180);ctx.strokeRect(20,133,32,100);ctx.strokeRect(508,133,32,100);if(!pts){ctx.fillStyle='#cbd1d4';ctx.fillText('GPS positions unavailable',30,355);return;}const T=Number(st.time?.at(-1))||0,b=Array.isArray(item?.halfBounds)&&item.halfBounds.length===4?item.halfBounds:[0,T/2,T/2,T],base=v6PitchBase(pts,b);if(!base)return;const rot=Number(document.getElementById('v6Rot')?.value||0)*Math.PI/180,scale=Number(document.getElementById('v6Scale')?.value||100)/100,ox=Number(document.getElementById('v6X')?.value||0),oy=Number(document.getElementById('v6Y')?.value||0),a=base.angle+rot,cos=Math.cos(a),sin=Math.sin(a),fit=v84RobustPitchFit(pts,b,base,a),effectiveScale=scale*fit.scale,ranges=period===1?[[b[0],b[1]]]:period===2?[[b[2],b[3]]]:[[b[0],b[1]],[b[2],b[3]]];ctx.save();ctx.beginPath();ctx.rect(20,20,520,325);ctx.clip();ctx.strokeStyle='#b7f36b';ctx.lineWidth=1.3;ctx.globalAlpha=.88;let last=-2;ctx.beginPath();for(const p of pts){const active=ranges.some(r=>p.t>=r[0]&&p.t<=r[1]);if(!active){last=-2;continue;}const dx=p.x-fit.cx,dy=p.y-fit.cy,x=280+((dx*cos+dy*sin)*effectiveScale+ox)*520/105,y=182.5-((-dx*sin+dy*cos)*effectiveScale+oy)*325/68;if(x<0||x>W||y<0||y>H){last=-2;continue;}if(last<0)ctx.moveTo(x,y);else ctx.lineTo(x,y);last=p.t;}ctx.stroke();ctx.restore();ctx.fillStyle='#cbd1d4';ctx.font='12px system-ui';ctx.fillText('Auto-fit estimate · GPS accuracy varies',26,360);}
