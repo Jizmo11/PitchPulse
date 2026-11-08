@@ -76,7 +76,21 @@ function drawSoccerMatch(){
   const linked=matches.find(m=>state.links[f.id]===idFor(m));
   return '<div class="item"><strong>'+esc(f.date)+' · Round '+esc(f.round)+' vs '+esc(f.opponent)+'</strong><div class="muted">'+(linked?'Linked: '+esc(activityName(linked)):'Not linked')+' · Goals '+esc(state.goals[f.id]??'—')+' · Assists '+esc(state.assists[f.id]??'—')+'</div><button type="button" class="secondary smallbtn" data-v84remove="'+esc(f.id)+'">Remove fixture</button></div>';
  }).join('');
- root.innerHTML='<h3>Match Dashboard</h3><label>Soccer match<select id="v84SoccerSelect"><option value="">Select a match</option>'+opts+'</select></label>'+stats+edit+'<details><summary style="cursor:pointer;font-weight:700;padding:12px 0">Manage saved fixtures ('+state.fixtures.length+')</summary><p class="muted">Existing fixtures and statistics are preserved. Remove only unwanted manual fixtures; original Strava activities are never deleted.</p>'+archive+'</details>';
+ root.innerHTML='<h3>Match Dashboard</h3><details style="margin:12px 0"><summary style="cursor:pointer;font-weight:700;padding:10px 0">Live Dribl connection · test</summary><p class="muted">Mt Barker United · 2026 Winter · Division 2A. Read-only fixture check; no goals, cards or match records are changed.</p><button type="button" class="secondary" id="v84DriblTest">Check Dribl fixtures</button><div id="v84DriblResult" class="muted" aria-live="polite"></div></details><label>Soccer match<select id="v84SoccerSelect"><option value="">Select a match</option>'+opts+'</select></label>'+stats+edit+'<details><summary style="cursor:pointer;font-weight:700;padding:12px 0">Manage saved fixtures ('+state.fixtures.length+')</summary><p class="muted">Existing fixtures and statistics are preserved. Remove only unwanted manual fixtures; original Strava activities are never deleted.</p>'+archive+'</details>';
+ const driblButton=root.querySelector('#v84DriblTest');
+ driblButton.onclick=async()=>{
+  const out=root.querySelector('#v84DriblResult');driblButton.disabled=true;out.textContent='Connecting to Dribl…';
+  try{
+   const response=await fetch('/api/dribl/fixtures',{credentials:'same-origin',cache:'no-store'});
+   const data=await response.json();
+   if(!response.ok)throw Error(data.error||'Dribl unavailable');
+   const fixtures=Array.isArray(data.fixtures)?data.fixtures:[];
+   const sample=fixtures[0]||{};
+   const fields=Object.keys(sample).slice(0,15);
+   out.textContent=fixtures.length+' fixtures returned'+(data.more?' (more pages available)':'')+'. Sample available fields: '+(fields.join(', ')||'none')+'. No records imported. Goal scorer and card access still requires verification.';
+  }catch(error){out.textContent='Dribl connection not confirmed: '+error.message;}
+  finally{driblButton.disabled=false;}
+ };
  root.querySelector('#v84SoccerSelect').onchange=e=>{state.selectedMatchId=e.target.value;save();const m=matches.find(x=>idFor(x)===state.selectedMatchId);window.dispatchEvent(new CustomEvent('pitchpulse:soccer-selected',{detail:m||null}))};
  const form=root.querySelector('#v84SoccerStats');
  if(form)form.onsubmit=e=>{
