@@ -66,8 +66,19 @@
         ? 'Connected to Strava' + (data.athlete_name ? ' as ' + data.athlete_name : '')
         : (data.configured ? 'Not connected — tap Connect Strava'
                            : 'Strava integration is not configured on the server');
+      const heading = document.getElementById('v83StravaLabel');
+      const indicator = document.querySelector('#v83StravaDetails .v83-status-dot');
+      if (heading) heading.textContent = data.connected ? 'Strava connected' : 'Strava not connected';
+      if (indicator) {
+        indicator.textContent = data.connected ? '✓' : '✕';
+        indicator.style.color = data.connected ? '#b7f36b' : '#ff7777';
+      }
       connect.disabled = !data.configured || !!data.connected;
     } catch (error) {
+      const heading = document.getElementById('v83StravaLabel');
+      const indicator = document.querySelector('#v83StravaDetails .v83-status-dot');
+      if (heading) heading.textContent = 'Strava connection unknown';
+      if (indicator) { indicator.textContent = '?'; indicator.style.color = '#ffb56b'; }
       status.textContent = 'Could not check Strava connection. Please retry or check the server.';
       connect.disabled = false;
     }
