@@ -1,12 +1,12 @@
 {
-  "name": "PitchPulse \u2014 Soccer Performance",
+  "name": "StrideEleven — Football Performance",
   "short_name": "StrideEleven",
   "description": "Every stride, every match. Football performance, training, running and recovery.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#101010",
-  "theme_color": "#171717",
+  "background_color": "#101c2b",
+  "theme_color": "#101c2b",
   "icons": [
     {
       "src": "./icon-192.png",
