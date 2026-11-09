@@ -1,7 +1,7 @@
 {
   "name": "PitchPulse \u2014 Soccer Performance",
-  "short_name": "PitchPulse",
-  "description": "Training, running, match tracking and recovery",
+  "short_name": "StrideEleven",
+  "description": "Every stride, every match. Football performance, training, running and recovery.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
