@@ -175,7 +175,7 @@ function v84RobustPitchFit(pts,bounds,base,angle){const on=pts.filter(p=>(p.t>=b
 // Trial venue calibration: approximate geographic corners from user-supplied aerial reference.
 // Never modify GPS streams or stored match data. Only apply to the named 2026 fixture.
 const v84VenueCampbelltown={name:'Steve Woodcock Sports Centre · Pitch 2',length:103,width:62,
- nw:[-34.88311,138.68940],ne:[-34.88308,138.69007],sw:[-34.88402,138.68945],se:[-34.88399,138.69012]};
+ nw:[-34.88311,138.68939],ne:[-34.88308,138.69007],sw:[-34.884035,138.68944],se:[-34.884005,138.69012]};
 function v84TrialVenue(item){
  const name=String(item?.name||item?.title||item?.opponent||'').toLowerCase();
  const date=String(item?.date||'');
@@ -231,8 +231,28 @@ async function v84SoccerMapLoad(st,mode,period){const el=document.getElementById
    color:'#ffda62',weight:3,opacity:.95,fill:false,dashArray:'8 6',interactive:false
   }).addTo(v84SoccerMap);
   outline.bindTooltip('Campbelltown Pitch 2 · provisional 103 × 62 m boundary',{sticky:true});
+  // Fit the known playing area, not the GPS outliers. A map control restores this view after panning.
+  const fitPitch=()=>v84SoccerMap&&v84SoccerMap.fitBounds(outline.getBounds(),{padding:[26,26],maxZoom:19});
+  const FitControl=L.Control.extend({
+   options:{position:'topright'},
+   onAdd:function(){
+    const button=L.DomUtil.create('button','v84-fit-pitch-control');
+    button.type='button';button.textContent='Fit Pitch';
+    button.title='Fit Campbelltown Pitch 2 in view';
+    button.style.cssText='background:#b7f36b;color:#15191c;border:2px solid #fff;border-radius:6px;padding:8px 10px;font-weight:700;cursor:pointer;box-shadow:0 1px 5px #0005';
+    L.DomEvent.disableClickPropagation(button);
+    L.DomEvent.on(button,'click',function(e){L.DomEvent.stop(e);fitPitch();});
+    return button;
+   }
+  });
+  new FitControl().addTo(v84SoccerMap);
+  const line=L.polyline(pts,{color:'#b7f36b',weight:2}).addTo(v84SoccerMap);
+  fitPitch();
+ }else{
+  const line=L.polyline(pts,{color:'#b7f36b',weight:2}).addTo(v84SoccerMap);
+  v84SoccerMap.fitBounds(line.getBounds(),{padding:[24,24]});
  }
- const line=L.polyline(pts,{color:'#b7f36b',weight:2}).addTo(v84SoccerMap);v84SoccerMap.fitBounds(line.getBounds(),{padding:[24,24]});setTimeout(()=>v84SoccerMap&&v84SoccerMap.invalidateSize(),200);}
+setTimeout(()=>v84SoccerMap&&v84SoccerMap.invalidateSize(),200);}
 let v84LiveBoundsDirty=false;
 function v84LiveEditing(item){const m=typeof breakActivity==='function'?breakActivity():null;return !!(currentStreams&&m&&item&&m.stravaId!=null&&item.stravaId!=null&&String(m.stravaId)===String(item.stravaId));}
 function v84GpsBounds(st,item){const T=Number(st?.time?.at(-1))||0;const valid=b=>Array.isArray(b)&&b.length===4&&b.every(x=>Number.isFinite(Number(x)))&&Number(b[0])>=0&&Number(b[0])<=Number(b[1])&&Number(b[1])<=Number(b[2])&&Number(b[2])<=Number(b[3])&&Number(b[3])<=T;const live=v84LiveEditing(item)&&v84LiveBoundsDirty?halfIds.map(id=>Number(document.getElementById(id+'Slider')?.value)):null;if(valid(live))return live;const saved=item?.halfBounds;if(valid(saved))return saved.map(Number);const estimate=v6Guess(st)?.bounds;return valid(estimate)?estimate.map(Number):null;}
