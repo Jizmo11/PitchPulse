@@ -28,7 +28,7 @@
 .v84-gps-controls button[aria-pressed=true]{background:#b7f36b;color:#151719;border-color:#b7f36b;font-weight:700}
 .v84-soccer-pitch{width:100%;height:auto;background:#15191c;border:1px solid #4b5357;border-radius:12px;display:block}
 .v84-gps-note{font-size:12px;color:#bdc4c8;margin:8px 0 12px}
-</style></head><body>
+</style><style id="strideeleven-splash-style">#strideelevenSplash{position:fixed;inset:0;z-index:99999;background:#101c2b;display:flex;align-items:center;justify-content:center;transition:opacity .35s ease}#strideelevenSplash img{display:block;max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain}#strideelevenSplash.sxi-hide{opacity:0;pointer-events:none}@media(prefers-reduced-motion:reduce){#strideelevenSplash{transition:none}}</style></head><body><div id="strideelevenSplash" role="status" aria-label="Loading StrideEleven"><img src="./splash-strideeleven.jpg" alt="StrideEleven — Football Performance" onerror="this.parentNode.remove()"></div><script>(function(){function closeSplash(){var el=document.getElementById("strideelevenSplash");if(!el)return;el.classList.add("sxi-hide");setTimeout(function(){if(el.parentNode)el.remove()},400)}window.addEventListener("load",function(){setTimeout(closeSplash,650)},{once:true});setTimeout(closeSplash,6500)})();</script>
 <header class="v82-global-header"><div class="v82-header-row"><div><div class="accent v82-brand">StrideEleven</div><h1 id="pageTitle">Performance Dashboard</h1><div class="muted" id="v82Tagline">EVERY STRIDE, EVERY MATCH</div></div><button id="v82HeaderAction" class="v82-header-action hidden" type="button" onclick="v82HeaderClick()">+ Create Workout</button></div></header>
 <main class="wrap">
 <section id="overview" class="active">
