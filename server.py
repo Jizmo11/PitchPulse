@@ -128,7 +128,9 @@ def worker():
 
 @app.get('/icon-192.png')
 @app.get('/icon-512.png')
-def icon():
+@app.get('/favicon.png')
+@app.get('/splash-strideeleven.jpg')
+def branding_asset():
     return send_from_directory(ROOT, request.path.lstrip('/'))
 
 
