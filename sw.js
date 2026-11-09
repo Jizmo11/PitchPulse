@@ -1,5 +1,5 @@
-const CACHE='strideeleven-pwa-v37-release-cache';
-const ASSETS=['./','./index.html','./backup.js','./v84.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./favicon.png','./splash-strideeleven.jpg'];
+const CACHE='strideeleven-pwa-v38-icon-refresh';
+const ASSETS=['./','./index.html','./backup.js','./v84.js','./manifest.webmanifest?brand=sxi-20261110','./icon-192.png?brand=sxi-20261110','./icon-512.png?brand=sxi-20261110','./favicon.png?brand=sxi-20261110','./splash-strideeleven.jpg'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('pitchpulse-pwa-')||key.startsWith('strideeleven-pwa-')).filter(key=>key!==CACHE).map(key=>caches.delete(key)))),self.clients.claim()])));
 self.addEventListener('fetch',event=>{const u=new URL(event.request.url);if(event.request.method!=='GET'||u.origin!==self.location.origin||u.pathname.includes('/api/')||u.pathname.includes('/auth/'))return;event.respondWith(fetch(event.request).then(r=>{if(r.ok){const copy=r.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));}return r}).catch(()=>caches.match(event.request).then(r=>r||caches.match('./index.html'))))});
