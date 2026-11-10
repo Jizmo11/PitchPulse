@@ -116,6 +116,11 @@ def v84_script():
     return send_from_directory(ROOT, 'v84.js', mimetype='application/javascript')
 
 
+@app.get('/running-performance.js')
+def running_performance_script():
+    return send_from_directory(ROOT, 'running-performance.js', mimetype='application/javascript')
+
+
 @app.get('/backup.js')
 def backup_script():
     return send_from_directory(ROOT, 'backup.js', mimetype='application/javascript')
