@@ -48,12 +48,13 @@ function renderEfforts(){
  '<button type="button" id="sxiAnalyzeEfforts" class="secondary">Analyze Strava runs ('+count+'/'+runs.filter(r=>r.stravaId).length+')</button><div id="sxiEffortStatus" class="muted"></div>';
  $id('sxiAnalyzeEfforts').addEventListener('click',analyzeAll);
 }
-async function analyzeAll(){
+let analysisBusy=false;
+async function analyzeAll(){if(analysisBusy)return;analysisBusy=true;
  const button=$id('sxiAnalyzeEfforts'),status=$id('sxiEffortStatus');
- if(!button||button.disabled)return;
+ if(!button||button.disabled){analysisBusy=false;return;}
  const runs=getRuns().filter(r=>r.stravaId),cache=cacheRead();
  const missing=runs.filter(r=>!cache[String(r.stravaId)]);
- if(!missing.length){status.textContent='All available runs have been analyzed.';return;}
+ if(!missing.length){status.textContent='All available runs have been analyzed.';analysisBusy=false;return;}
  button.disabled=true;let completed=0,failed=0;
  for(const r of missing){
   status.textContent='Analyzing '+(completed+failed+1)+' of '+missing.length+' runs…';
@@ -71,8 +72,9 @@ async function analyzeAll(){
  }
  renderEfforts();
  const newStatus=$id('sxiEffortStatus');
- if(newStatus)newStatus.textContent=completed+' run(s) analyzed, '+failed+' unavailable. Results are saved on this device.';
+ if(newStatus)newStatus.textContent=completed+' run(s) analyzed, '+failed+' unavailable. Results are saved on this device.';analysisBusy=false;
 }
+window.sxiAutoAnalyzeEfforts=()=>{if(!analysisBusy&&getRuns().some(r=>r.stravaId&&!cacheRead()[String(r.stravaId)]))analyzeAll();};
 function renderTrends(){
  const host=$id('sxiRunTrends');if(!host)return;
  const mode=$id('sxiRunTrendMode')?.value||'pace';
@@ -82,7 +84,13 @@ function renderTrends(){
  const low=Math.min(...points.map(p=>p.value)),high=Math.max(...points.map(p=>p.value)),span=Math.max(.1,high-low);
  const coords=points.map((p,i)=>({x:points.length===1?300:40+i*520/(points.length-1),y:165-(p.value-low)/span*125,...p}));
  const unit=mode==='pace'?'min/km':'km/h';
- host.innerHTML='<svg viewBox="0 0 600 205" role="img" aria-label="Running '+mode+' progression" style="width:100%"><line x1="40" y1="165" x2="565" y2="165" stroke="#607589"/><polyline points="'+coords.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ')+'" fill="none" stroke="#b7f36b" stroke-width="3"/>'+coords.map(p=>'<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="#b7f36b"><title>'+escapeHtml(p.date+' · '+p.name+' · '+(mode==='pace'?fmt(p.value*60):p.value.toFixed(2))+' '+unit)+'</title></circle>').join('')+'<text x="5" y="18" fill="#c6d2de" font-size="14">'+(mode==='pace'?fmt(high*60):high.toFixed(2))+'</text><text x="5" y="160" fill="#c6d2de" font-size="14">'+(mode==='pace'?fmt(low*60):low.toFixed(2))+'</text><text x="300" y="198" text-anchor="middle" fill="#c6d2de" font-size="14">Runs by date · '+unit+'</text></svg><p class="muted">'+points.length+' activities · '+escapeHtml(points[0].date)+' to '+escapeHtml(points[points.length-1].date)+'</p>';
+ host.innerHTML='<div id="sxiRunPointDetail" class="muted" style="min-height:28px">Tap a point to view the run and its result.</div><svg viewBox="0 0 600 205" role="img" aria-label="Running '+mode+' progression" style="width:100%"><line x1="40" y1="165" x2="565" y2="165" stroke="#607589"/><polyline points="'+coords.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ')+'" fill="none" stroke="#b7f36b" stroke-width="3"/>'+coords.map(p=>'<circle tabindex="0" role="button" data-point="'+coords.indexOf(p)+'" cx="'+p.x+'" cy="'+p.y+'" r="6" fill="#b7f36b"><title>'+escapeHtml(p.date+' · '+p.name+' · '+(mode==='pace'?fmt(p.value*60):p.value.toFixed(2))+' '+unit)+'</title></circle>').join('')+'<text x="5" y="18" fill="#c6d2de" font-size="14">'+(mode==='pace'?fmt(high*60):high.toFixed(2))+'</text><text x="5" y="160" fill="#c6d2de" font-size="14">'+(mode==='pace'?fmt(low*60):low.toFixed(2))+'</text><text x="300" y="198" text-anchor="middle" fill="#c6d2de" font-size="14">Runs by date · '+unit+'</text></svg><p class="muted">'+points.length+' activities · '+escapeHtml(points[0].date)+' to '+escapeHtml(points[points.length-1].date)+'</p>';
+ const detail=$id('sxiRunPointDetail');
+ host.querySelectorAll('[data-point]').forEach(node=>{
+  const show=()=>{const p=points[Number(node.getAttribute('data-point'))];if(p&&detail)detail.textContent=p.date+' · '+p.name+' · '+(mode==='pace'?fmt(p.value*60)+' min/km':p.value.toFixed(2)+' km/h');};
+  node.addEventListener('click',show);
+  node.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();show();}});
+ });
 }
 function refresh(){renderEfforts();renderTrends();}
 window.sxiPhase2Refresh=refresh;
