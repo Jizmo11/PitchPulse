@@ -36,17 +36,24 @@ function analyze(st){
 function getRuns(){return typeof filteredRuns==='function'?filteredRuns().map(x=>x.r):[];}
 function renderEfforts(){
  const host=$id('sxiRunRecords');if(!host)return;
+ if(!$id('sxiBestTilesStyle')){
+  const style=document.createElement('style');style.id='sxiBestTilesStyle';
+  style.textContent='#sxiRunRecords .sxi-best-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0}#sxiRunRecords .sxi-best-tile{min-width:0;padding:12px 4px;border-radius:12px;background:#292929;color:inherit;border:1px solid #494949;text-align:center;cursor:pointer}#sxiRunRecords .sxi-best-tile strong{display:block;color:#b7f36b;font-size:clamp(16px,4vw,23px);font-weight:700;white-space:nowrap}#sxiRunRecords .sxi-best-tile small{display:block;color:#c5c5c5;margin-top:5px}#sxiRunRecords .sxi-best-tile[aria-pressed="true"]{border-color:#b7f36b}#sxiRunRecords .sxi-best-detail{min-height:32px;color:#c5c5c5;font-size:13px;margin:9px 0}';
+  document.head.appendChild(style);
+ }
  const runs=getRuns(),cache=cacheRead();
- const rows=DIST.map((d,i)=>{
-  const found=runs.filter(r=>r.stravaId&&cache[String(r.stravaId)]?.values?.[i]>0).map(r=>({r,time:cache[String(r.stravaId)].values[i]})).sort((a,b)=>a.time-b.time);
-  const best=found[0];
-  return '<div class="item row"><span><b>'+LABEL[i]+'</b><br><span class="muted">'+(best?escapeHtml(best.r.date||'')+' · '+escapeHtml(best.r.name||'Run'):'Awaiting Strava stream analysis')+'</span></span><strong style="color:#b7f36b">'+(best?fmt(best.time):'—')+'</strong></div>';
- });
+ const bests=DIST.map((d,i)=>runs.filter(r=>r.stravaId&&cache[String(r.stravaId)]?.values?.[i]>0).map(r=>({r,time:cache[String(r.stravaId)].values[i]})).sort((a,b)=>a.time-b.time)[0]||null);
+ const tiles=bests.map((best,i)=>'<button type="button" class="sxi-best-tile" data-effort="'+i+'" aria-pressed="false" aria-label="'+LABEL[i]+' personal best '+(best?fmt(best.time):'not recorded')+'"><strong>'+(best?fmt(best.time):'—')+'</strong><small>'+LABEL[i]+'</small></button>');
  const count=runs.filter(r=>r.stravaId&&cache[String(r.stravaId)]).length;
- host.innerHTML='<h4>Fastest continuous efforts</h4>'+rows.join('')+
+ host.innerHTML='<h4>Fastest continuous efforts</h4><div class="sxi-best-grid">'+tiles.join('')+'</div><div id="sxiBestDetail" class="sxi-best-detail" aria-live="polite">Tap a tile to see its run details.</div>'+
  '<p class="muted">Calculated from timestamped distance streams within each run. Pauses count toward elapsed effort time. Only analyzed Strava runs are included; records follow your season/month filters.</p>'+
  '<button type="button" id="sxiAnalyzeEfforts" class="secondary">Analyze Strava runs ('+count+'/'+runs.filter(r=>r.stravaId).length+')</button><div id="sxiEffortStatus" class="muted"></div>';
  $id('sxiAnalyzeEfforts').addEventListener('click',analyzeAll);
+ host.querySelectorAll('[data-effort]').forEach(tile=>tile.addEventListener('click',()=>{
+  const i=Number(tile.getAttribute('data-effort')),best=bests[i];
+  host.querySelectorAll('[data-effort]').forEach(t=>t.setAttribute('aria-pressed',String(t===tile)));
+  $id('sxiBestDetail').textContent=best?LABEL[i]+' · '+fmt(best.time)+' · '+(best.r.date||'')+' · '+(best.r.name||'Run')+' · '+fmt(best.time/DIST[i]*1000)+' min/km':'No recorded effort for '+LABEL[i]+' yet.';
+ }));
 }
 let analysisBusy=false;
 async function analyzeAll(){if(analysisBusy)return;analysisBusy=true;
