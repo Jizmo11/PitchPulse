@@ -85,6 +85,12 @@ function renderTrends(){
  const coords=points.map((p,i)=>({x:points.length===1?300:40+i*520/(points.length-1),y:165-(p.value-low)/span*125,...p}));
  const unit=mode==='pace'?'min/km':'km/h';
  host.innerHTML='<div id="sxiRunPointDetail" class="muted" style="min-height:28px">Tap a point to view the run and its result.</div><svg viewBox="0 0 600 205" role="img" aria-label="Running '+mode+' progression" style="width:100%"><line x1="40" y1="165" x2="565" y2="165" stroke="#607589"/><polyline points="'+coords.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ')+'" fill="none" stroke="#b7f36b" stroke-width="3"/>'+coords.map(p=>'<circle tabindex="0" role="button" data-point="'+coords.indexOf(p)+'" cx="'+p.x+'" cy="'+p.y+'" r="6" fill="#b7f36b"><title>'+escapeHtml(p.date+' · '+p.name+' · '+(mode==='pace'?fmt(p.value*60):p.value.toFixed(2))+' '+unit)+'</title></circle>').join('')+'<text x="5" y="18" fill="#c6d2de" font-size="14">'+(mode==='pace'?fmt(high*60):high.toFixed(2))+'</text><text x="5" y="160" fill="#c6d2de" font-size="14">'+(mode==='pace'?fmt(low*60):low.toFixed(2))+'</text><text x="300" y="198" text-anchor="middle" fill="#c6d2de" font-size="14">Runs by date · '+unit+'</text></svg><p class="muted">'+points.length+' activities · '+escapeHtml(points[0].date)+' to '+escapeHtml(points[points.length-1].date)+'</p>';
+ const detail=$id('sxiRunPointDetail');
+ host.querySelectorAll('[data-point]').forEach(node=>{
+  const show=()=>{const p=points[Number(node.getAttribute('data-point'))];if(p&&detail)detail.textContent=p.date+' · '+p.name+' · '+(mode==='pace'?fmt(p.value*60)+' min/km':p.value.toFixed(2)+' km/h');};
+  node.addEventListener('click',show);
+  node.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();show();}});
+ });
 }
 function refresh(){renderEfforts();renderTrends();}
 window.sxiPhase2Refresh=refresh;
