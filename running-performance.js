@@ -56,10 +56,12 @@ function renderEfforts(){
  }));
 }
 let analysisBusy=false;
-async function analyzeAll(){if(analysisBusy)return;analysisBusy=true;
+let autoAttempted=false;
+function allStravaRuns(){return (typeof db!=='undefined'&&Array.isArray(db.runs)?db.runs:[]).filter(r=>r.stravaId);}
+async function analyzeAll(automatic=false){if(analysisBusy)return;analysisBusy=true;
  const button=$id('sxiAnalyzeEfforts'),status=$id('sxiEffortStatus');
  if(!button||button.disabled){analysisBusy=false;return;}
- const runs=getRuns().filter(r=>r.stravaId),cache=cacheRead();
+ const runs=automatic?allStravaRuns():getRuns().filter(r=>r.stravaId),cache=cacheRead();
  const missing=runs.filter(r=>!cache[String(r.stravaId)]);
  if(!missing.length){status.textContent='All available runs have been analyzed.';analysisBusy=false;return;}
  button.disabled=true;let completed=0,failed=0;
@@ -81,7 +83,7 @@ async function analyzeAll(){if(analysisBusy)return;analysisBusy=true;
  const newStatus=$id('sxiEffortStatus');
  if(newStatus)newStatus.textContent=completed+' run(s) analyzed, '+failed+' unavailable. Results are saved on this device.';analysisBusy=false;
 }
-window.sxiAutoAnalyzeEfforts=()=>{if(!analysisBusy&&getRuns().some(r=>r.stravaId&&!cacheRead()[String(r.stravaId)]))analyzeAll();};
+window.sxiAutoAnalyzeEfforts=()=>{if(!analysisBusy&&allStravaRuns().some(r=>!cacheRead()[String(r.stravaId)]))analyzeAll(true);};
 function renderTrends(){
  const host=$id('sxiRunTrends');if(!host)return;
  const mode=$id('sxiRunTrendMode')?.value||'pace';
@@ -104,5 +106,8 @@ window.sxiPhase2Refresh=refresh;
 document.addEventListener('DOMContentLoaded',()=>{
  const selector=$id('sxiRunTrendMode');if(selector)selector.addEventListener('change',renderTrends);
  refresh();
+ // Analyse missing Strava efforts on app open, without requiring a button tap.
+ // Attempt once per page load to avoid retry loops for unavailable streams.
+ if(!autoAttempted){autoAttempted=true;window.sxiAutoAnalyzeEfforts();}
 });
 })();
