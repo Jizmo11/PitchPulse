@@ -38,7 +38,7 @@ function renderEfforts(){
  const host=$id('sxiRunRecords');if(!host)return;
  if(!$id('sxiBestTilesStyle')){
   const style=document.createElement('style');style.id='sxiBestTilesStyle';
-  style.textContent='#sxiRunRecords .sxi-best-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0}#sxiRunRecords .sxi-best-tile{min-width:0;padding:12px 4px;border-radius:12px;background:#292929;color:inherit;border:1px solid #494949;text-align:center;cursor:pointer}#sxiRunRecords .sxi-best-tile strong{display:block;color:#b7f36b;font-size:clamp(16px,4vw,23px);font-weight:700;white-space:nowrap}#sxiRunRecords .sxi-best-tile small{display:block;color:#c5c5c5;margin-top:5px}#sxiRunRecords .sxi-best-tile[aria-pressed="true"]{border-color:#b7f36b}#sxiRunRecords .sxi-best-detail{min-height:32px;color:#c5c5c5;font-size:13px;margin:9px 0}';
+  style.textContent='#sxiRunRecords .sxi-best-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0}#sxiRunRecords .sxi-best-tile{min-width:0;padding:12px 4px;border-radius:12px;background:#292929;color:inherit;border:1px solid #494949;text-align:center;cursor:pointer}#sxiRunRecords .sxi-best-tile strong{display:block;color:#b7f36b;font-size:clamp(16px,4vw,23px);font-weight:700;white-space:nowrap}#sxiRunRecords .sxi-best-tile small{display:block;color:#c5c5c5;margin-top:5px}#sxiRunRecords .sxi-best-tile[aria-pressed="true"]{border-color:#b7f36b}#sxiRunRecords .sxi-best-detail{min-height:32px;color:#c5c5c5;font-size:13px;margin:9px 0}#sxiRunRecords .sxi-effort-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0}#sxiRunRecords .sxi-effort-controls .muted{font-size:12px}#sxiRunRecords .sxi-effort-retry{width:auto;padding:5px 10px;font-size:12px;min-height:0}';
   document.head.appendChild(style);
  }
  const runs=allStravaRuns(),cache=cacheRead();
@@ -47,8 +47,8 @@ function renderEfforts(){
  const count=runs.filter(r=>r.stravaId&&cache[String(r.stravaId)]).length;
  host.innerHTML='<h4>All-time personal bests · elapsed time</h4><div class="sxi-best-grid">'+tiles.join('')+'</div><div id="sxiBestDetail" class="sxi-best-detail" aria-live="polite">Tap a tile to see its run details.</div>'+
  '<p class="muted">Calculated from timestamped distance streams within each run. Pauses count toward elapsed effort time. Only analyzed Strava runs are included. All-time personal bests remain visible regardless of season/month filters.</p>'+
- '<button type="button" id="sxiAnalyzeEfforts" class="secondary">Analyze Strava runs ('+count+'/'+runs.filter(r=>r.stravaId).length+')</button><div id="sxiEffortStatus" class="muted"></div>';
- $id('sxiAnalyzeEfforts').addEventListener('click',analyzeAll);
+ '<div class="sxi-effort-controls"><span class="muted" role="status">'+(count===runs.length?'✓ ':'')+count+' of '+runs.length+' Strava runs analysed</span><button type="button" id="sxiAnalyzeEfforts" class="secondary sxi-effort-retry">Retry missing</button></div><div id="sxiEffortStatus" class="muted" aria-live="polite"></div>';
+ $id('sxiAnalyzeEfforts').addEventListener('click',()=>analyzeAll(false));
  host.querySelectorAll('[data-effort]').forEach(tile=>tile.addEventListener('click',()=>{
   const i=Number(tile.getAttribute('data-effort')),best=bests[i];
   host.querySelectorAll('[data-effort]').forEach(t=>t.setAttribute('aria-pressed',String(t===tile)));
@@ -63,7 +63,7 @@ async function analyzeAll(automatic=false){if(analysisBusy)return;analysisBusy=t
  if(!button||button.disabled){analysisBusy=false;return;}
  const runs=allStravaRuns(),cache=cacheRead();
  const missing=runs.filter(r=>!cache[String(r.stravaId)]);
- if(!missing.length){status.textContent='All available runs have been analyzed.';analysisBusy=false;return;}
+ if(!missing.length){status.textContent='All Strava runs have been analysed.';analysisBusy=false;return;}
  button.disabled=true;let completed=0,failed=0;
  for(const r of missing){
   status.textContent='Analyzing '+(completed+failed+1)+' of '+missing.length+' runs…';
