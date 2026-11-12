@@ -41,6 +41,7 @@ function render(){
  el('sxiTimerCollapse').textContent=cfg.compact?'⌃':'⌄';
  el('sxiTimerCollapse').setAttribute('aria-label',cfg.compact?'Expand timer':'Collapse timer');
  el('sxiTimerBody').hidden=cfg.compact;
+ requestAnimationFrame(updateClearance);
  const total=phase==='prep'?cfg.prep:phase==='work'?cfg.duration:cfg.duration;
  el('sxiTimerBar').style.width=phase==='done'?'100%':phase==='idle'?'0%':phase==='stopwatch'?'0%':Math.max(0,Math.min(100,(1-secs/Math.max(1,total))*100))+'%';
  el('sxiTimerDuration').disabled=running||phase==='paused';
@@ -77,7 +78,19 @@ el('sxiTimerMode').onchange=e=>{cfg.mode=e.target.value;persist();reset()};
 el('sxiTimerDuration').onchange=e=>{cfg.duration=clamp(e.target.value,5,3600,120);e.target.value=cfg.duration;persist();reset()};
 el('sxiTimerPrep').onchange=e=>{cfg.prep=Number(e.target.value);persist();reset()};
 el('sxiTimerAlerts').onchange=e=>{cfg.alerts=e.target.value;persist();render()};
-function visibility(){dock.hidden=!document.getElementById('training')?.classList.contains('active')}
+const trainingSection=document.getElementById('training');
+const clearance=document.createElement('div');
+clearance.id='sxiTimerScrollClearance';
+clearance.setAttribute('aria-hidden','true');
+clearance.style.cssText='height:0;pointer-events:none;flex:none';
+trainingSection.appendChild(clearance);
+function updateClearance(){
+ const visible=trainingSection.classList.contains('active')&&!dock.hidden;
+ clearance.style.height=visible?(Math.ceil(dock.getBoundingClientRect().height)+18)+'px':'0px';
+}
+function visibility(){dock.hidden=!trainingSection.classList.contains('active');updateClearance()}
+if(typeof ResizeObserver!=='undefined'){new ResizeObserver(updateClearance).observe(dock)}
+window.addEventListener('resize',updateClearance);
 document.getElementById('nav')?.addEventListener('click',()=>setTimeout(visibility,0));
 const observer=new MutationObserver(visibility);observer.observe(document.getElementById('training'),{attributes:true,attributeFilter:['class','style']});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)tick()});
