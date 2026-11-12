@@ -116,6 +116,11 @@ def v84_script():
     return send_from_directory(ROOT, 'v84.js', mimetype='application/javascript')
 
 
+@app.get('/training-calendar.js')
+def training_calendar_script():
+    return send_from_directory(ROOT, 'training-calendar.js', mimetype='application/javascript')
+
+
 @app.get('/guided-workout.js')
 def guided_workout_script():
     return send_from_directory(ROOT, 'guided-workout.js', mimetype='application/javascript')
