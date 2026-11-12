@@ -116,6 +116,11 @@ def v84_script():
     return send_from_directory(ROOT, 'v84.js', mimetype='application/javascript')
 
 
+@app.get('/workout-timer.js')
+def workout_timer_script():
+    return send_from_directory(ROOT, 'workout-timer.js', mimetype='application/javascript')
+
+
 @app.get('/running-performance.js')
 def running_performance_script():
     return send_from_directory(ROOT, 'running-performance.js', mimetype='application/javascript')
