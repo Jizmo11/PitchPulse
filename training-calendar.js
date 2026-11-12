@@ -10,7 +10,7 @@ const monday=()=>{const d=new Date();return add(localDate(d),-((d.getDay()+6)%7)
 const diff=(a,b)=>Math.round((new Date(a+'T12:00:00')-new Date(b+'T12:00:00'))/86400000);
 const settings=()=>{if(!db.sxiCalendar||typeof db.sxiCalendar!=='object')db.sxiCalendar={};return db.sxiCalendar};
 const config=p=>{const s=settings();if(!s[p.id])s[p.id]={weeks:12,week:1,start:monday(),swaps:{},assignments:{}};return s[p.id]};
-const persist=()=>save();
+const persist=()=>{localStorage.setItem('pitchpulse_v1',JSON.stringify(db));};
 const effectiveDay=(t,c)=>{const swaps=c.swaps[c.week]||{};return swaps[t.id]||t.day};
 const weekStart=c=>add(c.start,7*(c.week-1));
 const runId=(r,i)=>String(r.stravaId||r.strava_id||r.id||'local-'+i+'-'+r.date+'-'+r.km);
@@ -34,7 +34,8 @@ function advance(p,c){let changed=false;while(c.week<c.weeks){const q=progress(p
 const style=document.createElement('style');style.textContent='.sxi-week{border:1px solid #435247;border-radius:14px;padding:14px;margin:12px 0;background:#202825}.sxi-week h3{margin:0;color:#b7f36b}.sxi-week-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.sxi-week button{cursor:pointer}.sxi-days{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}.sxi-day{background:#29322e;border:1px solid #49574d;border-radius:12px;padding:12px;min-width:0}.sxi-day.done{border-color:#b7f36b;background:#263c2d}.sxi-day small{display:block;color:#a8b8ae;margin-bottom:6px}.sxi-day button{margin-top:8px;width:100%;text-align:left}.sxi-week .sxi-muted{color:#acb9ae;font-size:.85em}.sxi-week select{max-width:110px}.sxi-week .sxi-extra{margin-top:6px;color:#b7f36b;font-size:.85em}.sxi-week .sxi-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.sxi-week .sxi-actions button{width:auto}.sxi-week progress{width:100%;accent-color:#b7f36b}@media(min-width:760px){.sxi-days{grid-template-columns:repeat(4,minmax(0,1fr))}}';document.head.appendChild(style);
 let swap=null;
 function render(){
- const root=$('v8TrainingSchedule');if(!root||!Array.isArray(db.trainingPlans))return;
+ const root=$('v8TrainingSchedule');if(!root)return;
+ if(!Array.isArray(db.trainingPlans)||!db.trainingPlans.length){root.innerHTML='<p class="muted">No training plans found. Your saved data has not been changed.</p>';return;}
  const weekSelect=$('week');if(weekSelect){weekSelect.closest('.card')?.querySelector('label[for="week"]')?.classList.add('hidden');weekSelect.classList.add('hidden');}
  root.innerHTML=db.trainingPlans.map(p=>{
  const c=config(p);advance(p,c);const q=progress(p,c),start=weekStart(c),extras=c.assignments[c.week]||{};
@@ -77,12 +78,11 @@ document.addEventListener('click',e=>{
  if(action==='delete')window.v81DeletePlan?.(p.id);
  render();
 });
-const original=window.v8Render;
-window.v8Render=function(){original?.();render();};
-const originalSave=window.save;
-if(typeof originalSave==='function')window.save=function(){originalSave();render();};
-window.sxiCalendarRender=render;
+const originalRender=window.render;
+if(typeof originalRender==='function')window.render=function(){originalRender();safeRender();};
+function safeRender(){try{render();}catch(error){console.error('SXI training calendar render failed',error);const root=$('v8TrainingSchedule');if(root)root.innerHTML='<div class="sxi-week"><h3>Training calendar could not load</h3><p class="sxi-muted">Your saved workouts have not been deleted. Error: '+esc(error.message||String(error))+'</p><button class="secondary smallbtn" onclick="window.sxiCalendarRender()">Retry calendar</button></div>';}}
+window.sxiCalendarRender=safeRender;
 window.sxiCalendarWeek=(id)=>{const p=db.trainingPlans.find(x=>x.id===id);return p?config(p).week:1};
 window.sxiCalendarCompletion=(t)=>{const p=db.trainingPlans.find(x=>x.id===t.planId);return p?{planId:p.id,templateId:t.id,week:config(p).week}:{}};
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',render);else render();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',safeRender);else safeRender();
 })();
