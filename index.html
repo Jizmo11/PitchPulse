@@ -490,4 +490,4 @@ function sxiRenderRunPerformance(items){
  if(el('sxiRunWeekly'))el('sxiRunWeekly').innerHTML=entries.length?entries.map(([w,v])=>'<div style="display:flex;align-items:center;gap:8px;margin:8px 0"><small style="width:78px">'+w.slice(5)+'</small><div style="flex:1;background:#263d50;border-radius:6px;height:14px"><div style="width:'+(100*v/max).toFixed(1)+'%;background:#b7f36b;border-radius:6px;height:100%"></div></div><small>'+v.toFixed(1)+' km</small></div>').join(''):'<p class="muted">No running data for this period.</p>';
 }
 document.addEventListener('DOMContentLoaded',()=>{if(typeof sxiRenderRunPerformance==='function'&&typeof filteredRuns==='function')sxiRenderRunPerformance(filteredRuns().map(x=>x.r));});
-</script><script defer src="./running-performance.js"></script><script defer src="./backup.js"></script><script defer src="./v84.js"></script></body></html>
+</script><script defer src="./workout-timer.js"></script><script defer src="./running-performance.js"></script><script defer src="./backup.js"></script><script defer src="./v84.js"></script></body></html>
