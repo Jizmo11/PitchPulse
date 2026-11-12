@@ -490,4 +490,21 @@ function sxiRenderRunPerformance(items){
  if(el('sxiRunWeekly'))el('sxiRunWeekly').innerHTML=entries.length?entries.map(([w,v])=>'<div style="display:flex;align-items:center;gap:8px;margin:8px 0"><small style="width:78px">'+w.slice(5)+'</small><div style="flex:1;background:#263d50;border-radius:6px;height:14px"><div style="width:'+(100*v/max).toFixed(1)+'%;background:#b7f36b;border-radius:6px;height:100%"></div></div><small>'+v.toFixed(1)+' km</small></div>').join(''):'<p class="muted">No running data for this period.</p>';
 }
 document.addEventListener('DOMContentLoaded',()=>{if(typeof sxiRenderRunPerformance==='function'&&typeof filteredRuns==='function')sxiRenderRunPerformance(filteredRuns().map(x=>x.r));});
-</script><script defer src="./guided-workout.js?v=70"></script><script defer src="./training-calendar.js?v=74"></script><script defer src="./running-performance.js"></script><script defer src="./backup.js"></script><script defer src="./v84.js"></script></body></html>
+</script><script>
+async function sxiCheckBuild(){
+ const badge=document.getElementById('sxiBuildToggle'),details=document.getElementById('sxiBuildText');
+ if(!badge||!details)return;
+ try{
+  const response=await fetch('./api/build?ts='+Date.now(),{cache:'no-store'});
+  if(!response.ok)throw Error('Build endpoint HTTP '+response.status);
+  const build=await response.json();
+  badge.textContent='SXI Build · '+(build.pr?'PR #'+build.pr:(build.commit||'Unknown'));
+  const calendar=window.sxiCalendarStatus;
+  const loaded=typeof window.sxiCalendarRender==='function';
+  const plans=typeof db!=='undefined'&&Array.isArray(db.trainingPlans)?db.trainingPlans.length:'unknown';
+  const templates=typeof db!=='undefined'&&Array.isArray(db.trainingTemplates)?db.trainingTemplates.length:'unknown';
+  details.textContent='Server commit: '+(build.commit||'Unavailable')+'\nPR: '+(build.pr?'#'+build.pr:'Not available')+'\nCalendar script: '+(loaded?'Loaded':'NOT LOADED')+'\nSaved plans: '+plans+' · Workouts: '+templates+'\nCalendar: '+(calendar?JSON.stringify(calendar):'No render status')+'\nNote: This identifies the deployed server; cached page files may still differ.';
+ }catch(e){badge.textContent='SXI Build · unavailable';details.textContent='Unable to read deployment: '+e.message;}
+}
+document.addEventListener('DOMContentLoaded',()=>{sxiCheckBuild();});
+</script><script defer src="./guided-workout.js?v=70"></script><script defer src="./training-calendar.js?v=75"></script><script defer src="./running-performance.js"></script><script defer src="./backup.js"></script><script defer src="./v84.js"></script></body></html>

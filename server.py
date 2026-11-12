@@ -153,6 +153,39 @@ def branding_asset():
     return send_from_directory(ROOT, request.path.lstrip('/'))
 
 
+
+@app.get('/api/build')
+def build_info():
+    import re
+    import subprocess
+    sha = os.environ.get('RENDER_GIT_COMMIT', '').strip()
+    message = ''
+    try:
+        result = subprocess.run(['git', 'log', '-1', '--format=%H%n%s'], cwd=ROOT,
+                                capture_output=True, text=True, timeout=2, check=False)
+        if result.returncode == 0:
+            lines = result.stdout.splitlines()
+            if not sha and lines:
+                sha = lines[0].strip()
+            if len(lines) > 1:
+                message = lines[1].strip()
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    if sha and not message:
+        try:
+            response = requests.get('https://api.github.com/repos/Jizmo11/PitchPulse/commits/' + sha,
+                                    headers={'Accept': 'application/vnd.github+json'}, timeout=3)
+            if response.ok:
+                message = response.json().get('commit', {}).get('message', '').splitlines()[0]
+        except (requests.RequestException, ValueError):
+            pass
+    match = re.search(r'\(#(\d+)\)', message)
+    response = jsonify(commit=sha[:7] if sha else None,
+                       pr=int(match.group(1)) if match else None,
+                       message=message or None)
+    response.headers['Cache-Control'] = 'no-store, max-age=0'
+    return response
+
 @app.get('/health')
 def health():
     return jsonify(ok=True)
