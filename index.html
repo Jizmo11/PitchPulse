@@ -32,6 +32,7 @@
 <style>
 #sxiFootballGpsPanel{scroll-margin-top:110px}
 #sxiFootballGpsPanel #breakdownCard{margin-top:14px;border:1px solid #465449;border-radius:12px;padding:12px;background:#222b26}
+#sxiFootballGpsPanel #breakdownCard[hidden]{display:none!important}
 #sxiFootballGpsPanel #breakdownCard summary{cursor:pointer;color:#b7f36b;font-weight:650}
 #sxiFootballGpsPanel #breakdownCard .sxi-breakdown-content{padding-top:12px}
 #sxiFootballGpsPanel #v6DetailHeat,#sxiFootballGpsPanel #v6Heatmaps{display:none}
@@ -370,7 +371,7 @@ function v84SyncSelectedSoccerGps(item){
  if(!gps||!breakdown)return;
  const id=item?.stravaId?String(item.stravaId):'';
  const isMatch=item&&soccerKind(item)==='match';
- const breakdownCard=$('breakdownCard');if(breakdownCard)breakdownCard.hidden=!isMatch;
+ const breakdownCard=$('breakdownCard');if(breakdownCard){breakdownCard.hidden=!isMatch;breakdownCard.open=false;}
  if(!id){
   gps.value='';breakdown.value='';
   $('soccerDetailView').innerHTML='';
@@ -555,7 +556,7 @@ document.addEventListener('DOMContentLoaded',()=>{sxiCheckBuild();});
 </script><script defer src="./guided-workout.js?v=70"></script><script defer src="./training-calendar.js?v=75"></script><script defer src="./running-performance.js"></script><script defer src="./backup.js"></script><script defer src="./v84.js"></script>
 <script>
 (function(){
- function attach(){const panel=document.getElementById('sxiFootballGpsPanel'),breakdown=document.getElementById('breakdownCard');if(!panel||!breakdown)return;panel.appendChild(breakdown);const type=document.getElementById('soccerType');const update=()=>{const match=window.v7Focus?.kind==='soccer'?soccerKind(db.matches[window.v7Focus.index])==='match':type?.value!=='training';breakdown.hidden=!match;};document.addEventListener('click',e=>{if(e.target.closest('#matchHistory .sxi-session-card'))setTimeout(update,0);});type?.addEventListener('change',update);update();}
+ function attach(){const panel=document.getElementById('sxiFootballGpsPanel'),breakdown=document.getElementById('breakdownCard');if(!panel||!breakdown)return;panel.appendChild(breakdown);const type=document.getElementById('soccerType');const update=()=>{const match=window.v7Focus?.kind==='soccer'?soccerKind(db.matches[window.v7Focus.index])==='match':type?.value!=='training';breakdown.hidden=!match;if(!match)breakdown.open=false;};document.addEventListener('click',e=>{if(e.target.closest('#matchHistory .sxi-session-card'))setTimeout(update,0);});type?.addEventListener('change',update);update();}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',attach);else attach();
 })();
 </script>
