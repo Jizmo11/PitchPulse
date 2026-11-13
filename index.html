@@ -335,7 +335,19 @@ function v84GpsPeriodStats(st,item,period){const t=st?.time||[],d=st?.distance||
 function v84GpsPeriodSummary(){const el=document.getElementById('v84GpsPeriodSummary');if(!el||!v84SoccerStream)return;const b=v84GpsBounds(v84SoccerStream,v84SoccerItem),p=v84SoccerPeriod,labels={0:'Match Only',1:'1st Half',2:'2nd Half',3:'Full Recording',4:'Warm-up'};if(!b){el.textContent='No reliable match boundaries detected. Showing the full recording; adjust the Match Breakdown markers to enable period views.';return;}const m=v84GpsPeriodStats(v84SoccerStream,v84SoccerItem,p);el.innerHTML='<div class="v5-grid"><div><strong>'+ (m.meters/1000).toFixed(2)+' km</strong>'+labels[p]+' distance (estimated)</div><div><strong>'+Math.round(m.seconds/60)+' min</strong>Selected period</div></div><p class="muted">Using '+v84GpsBoundsSource(v84SoccerStream,v84SoccerItem)+' boundaries. Original Strava totals above are unchanged.</p>';}
 let sxiPitchDisplay='route';
 function sxiSetPitchDisplay(mode){sxiPitchDisplay=mode==='heatmap'?'heatmap':'route';v84SoccerGpsView();}
-function sxiHeatOnPitch(canvas,st,item,period){const pts=v6Project(st);if(!pts){canvas.replaceWith(document.createTextNode('GPS positions unavailable for heatmap.'));return;}const ranges=v84GpsRanges(st,item,period),selected=pts.filter(p=>ranges.some(([a,b])=>p.t>=a&&p.t<=b));if(!selected.length){canvas.replaceWith(document.createTextNode('No GPS positions in this period.'));return;}const b=v84GpsBounds(st,item)||[0,Number(st.time?.at(-1))||0,0,0],base=v6PitchBase(pts,b);if(!base)return;v6HeatCanvas(canvas,selected,[0,Number(st.time?.at(-1))||0,0,0],base,base.angle,1,0,0);}
+function sxiHeatOnPitch(canvas,st,item,period){
+ const pts=v6Project(st),end=Number(st?.time?.at(-1))||0;
+ const note=message=>{canvas.replaceWith(Object.assign(document.createElement('p'),{className:'v84-gps-note',textContent:message}));};
+ if(!pts){note('Heatmap unavailable: this recording has insufficient GPS coordinates.');return;}
+ const ranges=v84GpsRanges(st,item,period);
+ const selected=pts.filter(p=>ranges.some(([lo,hi])=>p.t>=lo&&p.t<=hi));
+ if(selected.length<20){note('Not enough GPS points in this period to draw a reliable heatmap. Try Full Recording or another period.');return;}
+ // Use the same period to select points and calculate pitch alignment; preserve actual GPS timestamps.
+ const bounds=[ranges[0][0],ranges[0][1],...(ranges[1]||[ranges[0][1],ranges[0][1]])];
+ const base=v6PitchBase(pts,bounds);
+ if(!base){note('Unable to align this period to the pitch. Try another period.');return;}
+ v6HeatCanvas(canvas,pts,bounds,base,base.angle,1,0,0);
+}
 function v84SoccerGpsView(){const el=document.getElementById('v84SoccerGpsBody');if(!el||!v84SoccerStream)return;const mode=v84SoccerMode,period=v84SoccerPeriod;v84GpsPeriodSummary();document.querySelectorAll('[data-sxi-pitch]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.sxiPitch===sxiPitchDisplay));b.disabled=mode==='satellite'&&b.dataset.sxiPitch==='heatmap';});document.querySelectorAll('[data-v84-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v84Mode===mode)));document.querySelectorAll('[data-v84-period]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.v84Period)===period)));if(v84SoccerMap){v84SoccerMap.remove();v84SoccerMap=null;}if(mode==='slate'){el.innerHTML='<canvas class="v84-soccer-pitch" id="v84SoccerCanvas" aria-label="Estimated GPS route on slate pitch"></canvas><p class="v84-gps-note">'+(v84TrialVenue(v84SoccerItem)?'Provisional Campbelltown Pitch 2 geographic calibration (103 × 62 m). GPS outside pitch is clipped; verify against Satellite.':'Auto-centred using typical match GPS positions (outliers excluded from fit, not deleted). Alignment is approximate; use Satellite for real-world location.')+'</p>';if(sxiPitchDisplay==='heatmap')sxiHeatOnPitch(document.getElementById('v84SoccerCanvas'),v84SoccerStream,v84SoccerItem,period);else v84PitchRoute(document.getElementById('v84SoccerCanvas'),v84SoccerStream,v84SoccerItem,period);}else{el.innerHTML='<div id="v84SoccerMap" class="v83-map"></div><p class="v84-gps-note">Map uses original GPS latitude/longitude; satellite imagery and GPS positions may have offsets.</p>';v84SoccerMapLoad(v84SoccerStream,mode,period).catch(()=>{const m=document.getElementById('v84SoccerMap');if(m)m.textContent='Map unavailable. Try another view.';});}}
 function v84SoccerSetMode(mode){v84SoccerMode=mode;if(mode==='satellite')sxiPitchDisplay='route';v84SoccerGpsView();}
 function v84SoccerSetPeriod(period){v84SoccerPeriod=Number(period);v84SoccerGpsView();}
@@ -348,15 +360,17 @@ function v6DetailHeatmap(st,item){const el=$('v6DetailHeat');if(!el)return;const
 // v7: view-only activity focus; original season totals and saved entries remain unchanged.
 let v7Focus=null;
 function v7ClearFocus(){v7Focus=null;for(const id of ['v7RunFocus','v7SoccerFocus']){const el=$(id);if(el){el.innerHTML='';el.classList.add('hidden');}}render();}
-function v7SelectHistory(kind,index){const item=(kind==='run'?db.runs:db.matches)[index];if(!item)return;if(kind==='soccer')window.dispatchEvent(new CustomEvent('pitchpulse:soccer-selected',{detail:item}));v7Focus={kind,index};const isRun=kind==='run',el=$(isRun?'v7RunFocus':'v7SoccerFocus');$('v7RunFocus').classList.add('hidden');$('v7SoccerFocus').classList.add('hidden');el.classList.remove('hidden');const km=Number(item.km)||0;const metrics=isRun?`${km.toFixed(2)} km · ${km>0?pace((Number(item.min)||0)/km):'—'} min/km · ${Number(item.min||0).toFixed(1)} min`:`${km.toFixed(2)} km · Avg ${Number(item.avg||0).toFixed(2)} km/h · Top ${Number(item.top||0).toFixed(2)} km/h`;
+function v7SelectHistory(kind,index){const item=(kind==='run'?db.runs:db.matches)[index];if(!item)return;v7Focus={kind,index};if(kind==='soccer')window.dispatchEvent(new CustomEvent('pitchpulse:soccer-selected',{detail:item}));const isRun=kind==='run',el=$(isRun?'v7RunFocus':'v7SoccerFocus');$('v7RunFocus').classList.add('hidden');$('v7SoccerFocus').classList.add('hidden');el.classList.remove('hidden');const km=Number(item.km)||0;const metrics=isRun?`${km.toFixed(2)} km · ${km>0?pace((Number(item.min)||0)/km):'—'} min/km · ${Number(item.min||0).toFixed(1)} min`:`${km.toFixed(2)} km · Avg ${Number(item.avg||0).toFixed(2)} km/h · Top ${Number(item.top||0).toFixed(2)} km/h`;
 el.innerHTML=`<b>Selected activity: ${esc(item.name||item.date)}</b><p class="muted">${esc(item.date)} · ${metrics}</p><button class="secondary" onclick="v7ClearFocus()">Back to season overview</button>`;
-if(item.stravaId){const id=isRun?'runDetailSelect':'soccerDetailSelect';$(id).value=String(item.stravaId);if($(id).value)loadV5Detail(kind);if(!isRun){const b=$('breakMatch');if(b){b.value=String(item.stravaId);if(b.value)breakSelect();}}}else{const status=$(isRun?'runDetailStatus':'soccerDetailStatus');status.textContent='Manual activity: no Strava GPS stream available.';$(isRun?'runDetailView':'soccerDetailView').innerHTML='';}
+if(item.stravaId){const id=isRun?'runDetailSelect':'soccerDetailSelect';$(id).value=String(item.stravaId);if(isRun&&$(id).value)loadV5Detail(kind);}else{const status=$(isRun?'runDetailStatus':'soccerDetailStatus');status.textContent='Manual activity: no Strava GPS stream available.';$(isRun?'runDetailView':'soccerDetailView').innerHTML='';}
 (isRun?el:$('sxiFootballGpsPanel')).scrollIntoView({behavior:'smooth',block:'start'});}
 // Keep both GPS views aligned with the Soccer dashboard's selected Strava match.
 function v84SyncSelectedSoccerGps(item){
  const gps=$('soccerDetailSelect'),breakdown=$('breakMatch');
  if(!gps||!breakdown)return;
  const id=item?.stravaId?String(item.stravaId):'';
+ const isMatch=item&&soccerKind(item)==='match';
+ const breakdownCard=$('breakdownCard');if(breakdownCard)breakdownCard.hidden=!isMatch;
  if(!id){
   gps.value='';breakdown.value='';
   $('soccerDetailView').innerHTML='';
@@ -370,6 +384,7 @@ function v84SyncSelectedSoccerGps(item){
   gps.value=id;
   if(gps.value)loadV5Detail('soccer');
  }
+ if(!isMatch){breakdown.value='';if(typeof v6Clear==='function')v6Clear();$('breakEditor').classList.add('hidden');$('breakStatus').textContent='Match breakdown is only available for match sessions.';return;}
  if(breakdown.value!==id || $('breakEditor').classList.contains('hidden')){
   breakdown.value=id;
   if(breakdown.value)breakSelect();
