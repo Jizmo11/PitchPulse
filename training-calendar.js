@@ -19,12 +19,16 @@ const runs=()=>Array.isArray(db.runs)?db.runs.map((r,i)=>({r,id:runId(r,i),date:
 const entries=(p,c)=>db.trainingTemplates.filter(t=>t.planId===p.id).map(t=>({...t,scheduledDay:effectiveDay(t,c)}));
 const completed=(p,c,t)=>{const key=add(weekStart(c),days.indexOf(t.scheduledDay));return (db.trainingCompleted||[]).some(h=>h.templateId===t.id&&h.planId===p.id&&h.week===c.week)|| (db.trainingCompleted||[]).some(h=>!h.templateId&&h.name===t.name&&h.day===t.scheduledDay&&h.week===c.week&&h.date===key)};
 function matching(p,c){
- const items=entries(p,c),start=weekStart(c),assigned=c.assignments[c.week]||{},used=new Set(Object.values(assigned).map(x=>x.runId).filter(Boolean)),out={};
- const available=runs().filter(x=>!Object.values(settings()).some(z=>Object.values(z.assignments||{}).some(w=>Object.values(w).some(v=>v.runId===x.id))));
- for(const t of items.filter(t=>t.type==='Run'&&!completed(p,c,t))){
-  if(assigned[t.id]){out[t.id]=assigned[t.id];continue;}
+ const items=entries(p,c),start=weekStart(c),assigned=c.assignments[c.week]||{},out={};
+ // Never assign one Strava recording to two scheduled workouts, including other weeks.
+ const reserved=new Set();
+ for(const z of Object.values(settings()))for(const w of Object.values(z.assignments||{}))for(const v of Object.values(w))if(v.runId)reserved.add(v.runId);
+ const available=runs(),used=new Set(reserved);
+ for(const t of items.filter(t=>t.type==='Run')){
+  const saved=assigned[t.id];
+  if(saved?.runId){const r=available.find(x=>x.id===saved.runId);if(r){out[t.id]={...saved,date:r.date,km:r.km};used.add(r.id);}continue;}
   const day=add(start,days.indexOf(t.scheduledDay)),minimum=Number(t.km)||0;
-  const options=available.filter(x=>!used.has(x.id)&&x.km+1e-8>=minimum&&Math.abs(diff(x.date,day))<=1).sort((a,b)=>Math.abs(diff(a.date,day))-Math.abs(diff(b.date,day))||a.date.localeCompare(b.date));
+  const options=available.filter(x=>!used.has(x.id)&&x.km+1e-8>=minimum&&Math.abs(diff(x.date,day))<=1).sort((a,b)=>Math.abs(diff(a.date,day))-Math.abs(diff(b.date,day))||a.date.localeCompare(b.date)||a.id.localeCompare(b.id));
   if(options.length){const x=options[0];out[t.id]={runId:x.id,date:x.date,km:x.km,auto:true};used.add(x.id);}
  }
  return out;
@@ -48,19 +52,34 @@ function render(){
 }
 function sxiStravaHistory(){
  const history=$('v8CompletedHistory');if(!history)return;
- const records=[];
- for(const p of db.trainingPlans||[]){const c=config(p),original=c.week;
-  for(let week=1;week<=c.weeks;week++){c.week=week;const matched=matching(p,c);
-   for(const t of entries(p,c).filter(t=>t.type==='Run')){
-    const m=matched[t.id];if(!m||completed(p,c,t))continue;
-    const r=runs().find(x=>x.id===m.runId);
-    if(r)records.push({id:r.id,name:t.name,date:r.date,km:r.km,min:Number(r.r.min)||0,plan:p.name,week});
+ const records=[],seenRuns=new Set();
+ for(const p of db.trainingPlans||[]){
+  const c=config(p),original=c.week;
+  try{
+   for(let week=1;week<=c.weeks;week++){
+    c.week=week;const matched=matching(p,c);
+    for(const t of entries(p,c).filter(t=>t.type==='Run')){
+     const m=matched[t.id];if(!m||seenRuns.has(m.runId))continue;
+     const r=runs().find(x=>x.id===m.runId);if(!r)continue;
+     seenRuns.add(m.runId);
+     records.push({id:r.id,templateId:t.id,planId:p.id,name:t.name,date:r.date,km:r.km,min:Number(r.r.min)||0,week,scheduledDate:add(weekStart(c),days.indexOf(t.scheduledDay)),source:'strava'});
+    }
    }
-  }c.week=original;
+  }finally{c.week=original;}
  }
- const unique=[...new Map(records.map(r=>[r.id,r])).values()];
- const snapshots=(db.trainingCompleted||[]).map((c,i)=>({date:String(c.date||'').slice(0,10),name:c.name,week:c.week,type:c.type,exercises:c.exercises?.length||0,sort:i}));
- const merged=[...snapshots.map(x=>({...x,source:'snapshot'})),...unique.map(x=>({...x,source:'strava'}))].sort((a,b)=>b.date.localeCompare(a.date)||(a.source==='strava'?1:-1));
+ const snapshots=(db.trainingCompleted||[]).map((c,i)=>({date:String(c.date||'').slice(0,10),name:c.name,week:c.week,planId:c.planId,templateId:c.templateId,type:c.type,exercises:c.exercises?.length||0,sort:i,source:'snapshot'}));
+ const consumed=new Set();
+ // Merge by workout identity, plan and week. Legacy completions may lack template IDs.
+ const merged=records.map(r=>{
+  const i=snapshots.findIndex((x,j)=>!consumed.has(j)&&String(x.week)===String(r.week)&&(
+   (x.templateId&&String(x.templateId)===String(r.templateId)&&(!x.planId||String(x.planId)===String(r.planId)))||
+   (!x.templateId&&x.name===r.name&&(!x.planId||String(x.planId)===String(r.planId))&&x.date&&Math.abs(diff(x.date,r.scheduledDate))<=1)
+  ));
+  if(i>=0)consumed.add(i);
+  return r;
+ });
+ snapshots.forEach((x,i)=>{if(!consumed.has(i))merged.push(x);});
+ merged.sort((a,b)=>b.date.localeCompare(a.date)||(a.source==='strava'?1:-1));
  history.innerHTML=merged.map(x=>'<div class="item"><b>'+esc(x.name||'Session')+'</b><br><span class="muted">'+esc(x.date)+' · Week '+esc(x.week)+' · '+(x.source==='strava'?'Run · '+km2(x.km)+' km · '+(Number(x.min)||0).toFixed(1)+' min · Strava':esc(x.type||'Workout')+(x.exercises?' · '+x.exercises+' exercises':''))+'</span></div>').join('')||'<p class="muted">No completed sessions yet.</p>';
 }
 function unassigned(p,c){
