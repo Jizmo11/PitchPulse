@@ -97,7 +97,7 @@ function renderTrends(){
  const bars=points.map((p,i)=>{const h=p.value/ceiling*height,x=left+i*slot+(slot-barWidth)/2,y=bottom-h;return '<rect role="button" tabindex="0" data-point="'+i+'" x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+barWidth.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="3" fill="#b7f36b"><title>'+escapeHtml(p.date+' · '+p.name+' · '+label(p.value)+' '+unit)+'</title></rect>';}).join('');
  host.innerHTML='<div id="sxiRunPointDetail" class="muted" style="min-height:28px">Tap a bar to view the run and its result.</div><svg viewBox="0 0 600 215" role="img" aria-label="Running '+mode+' comparison bar chart with labelled '+unit+' axis" style="width:100%;max-height:250px"><text x="4" y="12" fill="#b9c6d2" font-size="11">'+unit+'</text>'+grid+bars+'<text x="310" y="204" text-anchor="middle" fill="#c6d2de" font-size="13">Individual runs</text></svg><p class="muted">'+(mode==='pace'?'Lower pace means a faster run. · ':'')+points.length+' activities · '+escapeHtml(points[0].date)+' to '+escapeHtml(points[points.length-1].date)+'</p>';
  const detail=$id('sxiRunPointDetail');
- const auDate=d=>/^\\d{4}-\\d{2}-\\d{2}$/.test(d)?d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4):d;
+ const auDate=d=>/^\d{4}-\d{2}-\d{2}$/.test(d)?d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4):d;
  host.querySelectorAll('[data-point]').forEach(node=>{
   const show=()=>{const p=points[Number(node.getAttribute('data-point'))];if(p&&detail)detail.textContent=auDate(p.date)+' · '+p.name+' · '+label(p.value)+' '+unit;};
   node.addEventListener('click',show);
