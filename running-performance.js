@@ -90,14 +90,20 @@ function renderTrends(){
  const rows=getRuns().filter(r=>Number(r.km)>0&&Number(r.min)>0).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
  const points=rows.map(r=>({name:r.name||'Run',date:r.date||'',value:mode==='pace'?Number(r.min)/Number(r.km):Number(r.km)*60/Number(r.min)})).filter(p=>Number.isFinite(p.value)&&p.value>0);
  if(!points.length){host.innerHTML='<p class="muted">No recorded values for this period.</p>';return;}
- const max=Math.max(...points.map(p=>p.value)),step=mode==='pace'?(max>8?2:1):(max>20?5:2),ceiling=Math.max(step,Math.ceil(max/step)*step);
+ const max=Math.max(...points.map(p=>p.value));
+ // Four equal intervals, five Y-axis labels including zero.
+ const targetStep=max/4;
+ const magnitude=Math.pow(10,Math.floor(Math.log10(targetStep)));
+ const step=[1,2,2.5,5,10].map(n=>n*magnitude).find(n=>n>=targetStep)||10*magnitude;
+ const ceiling=4*step;
  const left=52,right=576,top=16,bottom=169,height=bottom-top,slot=(right-left)/points.length,barWidth=Math.min(34,slot*.7);
+const auDate=d=>/^\d{4}-\d{2}-\d{2}$/.test(d)?d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4):d;
  const unit=mode==='pace'?'min/km':'km/h',label=v=>mode==='pace'?fmt(v*60):String(v);
  const grid=Array.from({length:Math.round(ceiling/step)+1},(_,i)=>i*step).map(v=>{const y=bottom-v/ceiling*height;return '<line x1="'+left+'" x2="'+right+'" y1="'+y.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="#83909a" stroke-opacity=".23"/><text x="'+(left-9)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" fill="#b9c6d2" font-size="12">'+label(v)+'</text>';}).join('');
  const bars=points.map((p,i)=>{const h=p.value/ceiling*height,x=left+i*slot+(slot-barWidth)/2,y=bottom-h;return '<rect role="button" tabindex="0" data-point="'+i+'" x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+barWidth.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="3" fill="#b7f36b"><title>'+escapeHtml(p.date+' · '+p.name+' · '+label(p.value)+' '+unit)+'</title></rect>';}).join('');
- host.innerHTML='<div id="sxiRunPointDetail" class="muted" style="min-height:28px">Tap a bar to view the run and its result.</div><svg viewBox="0 0 600 215" role="img" aria-label="Running '+mode+' comparison bar chart with labelled '+unit+' axis" style="width:100%;max-height:250px"><text x="4" y="12" fill="#b9c6d2" font-size="11">'+unit+'</text>'+grid+bars+'<text x="310" y="204" text-anchor="middle" fill="#c6d2de" font-size="13">Individual runs</text></svg><p class="muted">'+(mode==='pace'?'Lower pace means a faster run. · ':'')+points.length+' activities · '+escapeHtml(points[0].date)+' to '+escapeHtml(points[points.length-1].date)+'</p>';
+ host.innerHTML='<div id="sxiRunPointDetail" class="muted" style="min-height:28px">Tap a bar to view the run and its result.</div><svg viewBox="0 0 600 215" role="img" aria-label="Running '+mode+' comparison bar chart with labelled '+unit+' axis" style="width:100%;max-height:250px"><text x="4" y="12" fill="#b9c6d2" font-size="11">'+unit+'</text>'+grid+bars+'<text x="310" y="204" text-anchor="middle" fill="#c6d2de" font-size="13">Individual runs</text></svg><p class="muted">'+(mode==='pace'?'Lower pace means a faster run. · ':'')+points.length+' activities · '+escapeHtml(auDate(points[0].date))+' – '+escapeHtml(auDate(points[points.length-1].date))+'</p>';
  const detail=$id('sxiRunPointDetail');
- const auDate=d=>/^\d{4}-\d{2}-\d{2}$/.test(d)?d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4):d;
+ 
  host.querySelectorAll('[data-point]').forEach(node=>{
   const show=()=>{const p=points[Number(node.getAttribute('data-point'))];if(p&&detail)detail.textContent=auDate(p.date)+' · '+p.name+' · '+label(p.value)+' '+unit;};
   node.addEventListener('click',show);
