@@ -643,7 +643,7 @@ document.addEventListener('DOMContentLoaded',()=>{sxiCheckBuild();});
   function draw(){bar.replaceChildren();Array.from(select.options).forEach(o=>{const b=document.createElement('button');b.type='button';b.className='sxi-choice';b.textContent=o.textContent;b.setAttribute('aria-pressed',String(select.value===o.value));b.addEventListener('click',()=>{select.value=o.value;select.dispatchEvent(new Event('change',{bubbles:true}));draw();});bar.appendChild(b);});}
   select.addEventListener('change',draw);draw();
  }
- document.addEventListener('DOMContentLoaded',()=>{compact('runChartYear','year');compact('runChartMonth','month');metrics();});
+ document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{compact('runChartYear','year');compact('runChartMonth','month');metrics();},0);});
 })();
 </script><script id="sxi-running-session-first-v1">
 (function(){
