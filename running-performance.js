@@ -86,14 +86,15 @@ async function analyzeAll(automatic=false){if(analysisBusy)return;analysisBusy=t
 window.sxiAutoAnalyzeEfforts=()=>{if(!analysisBusy&&allStravaRuns().some(r=>!cacheRead()[String(r.stravaId)]))analyzeAll(true);};
 function renderTrends(){
  const host=$id('sxiRunTrends');if(!host)return;
- const mode=$id('sxiRunTrendMode')?.value||'pace';
+ const mode=$id('sxiRunTrendMode')?.value==='speed'?'speed':'pace';
  const rows=getRuns().filter(r=>Number(r.km)>0&&Number(r.min)>0).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
- const points=rows.map(r=>({name:r.name||'Run',date:r.date||'',value:mode==='pace'?Number(r.min)/Number(r.km):mode==='speed'?Number(r.km)*60/Number(r.min):Number(r.top||r.maxSpeed||NaN)})).filter(x=>Number.isFinite(x.value)&&x.value>0);
+ const points=rows.map(r=>({name:r.name||'Run',date:r.date||'',value:mode==='pace'?Number(r.min)/Number(r.km):Number(r.km)*60/Number(r.min)})).filter(p=>Number.isFinite(p.value)&&p.value>0);
  if(!points.length){host.innerHTML='<p class="muted">No recorded values for this period.</p>';return;}
- const low=Math.min(...points.map(p=>p.value)),high=Math.max(...points.map(p=>p.value)),span=Math.max(.1,high-low);
- const coords=points.map((p,i)=>({x:points.length===1?300:40+i*520/(points.length-1),y:165-(p.value-low)/span*125,...p}));
+ const max=Math.max(...points.map(p=>p.value)),ceiling=Math.max(1,max*1.12),baseline=167,plotHeight=125;
+ const slot=520/points.length,barWidth=Math.min(34,slot*.7);
  const unit=mode==='pace'?'min/km':'km/h';
- host.innerHTML='<div id="sxiRunPointDetail" class="muted" style="min-height:28px">Tap a point to view the run and its result.</div><svg viewBox="0 0 600 205" role="img" aria-label="Running '+mode+' progression" style="width:100%"><line x1="40" y1="165" x2="565" y2="165" stroke="#607589"/><polyline points="'+coords.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ')+'" fill="none" stroke="#b7f36b" stroke-width="3"/>'+coords.map(p=>'<circle tabindex="0" role="button" data-point="'+coords.indexOf(p)+'" cx="'+p.x+'" cy="'+p.y+'" r="6" fill="#b7f36b"><title>'+escapeHtml(p.date+' · '+p.name+' · '+(mode==='pace'?fmt(p.value*60):p.value.toFixed(2))+' '+unit)+'</title></circle>').join('')+'<text x="5" y="18" fill="#c6d2de" font-size="14">'+(mode==='pace'?fmt(high*60):high.toFixed(2))+'</text><text x="5" y="160" fill="#c6d2de" font-size="14">'+(mode==='pace'?fmt(low*60):low.toFixed(2))+'</text><text x="300" y="198" text-anchor="middle" fill="#c6d2de" font-size="14">Runs by date · '+unit+'</text></svg><p class="muted">'+points.length+' activities · '+escapeHtml(points[0].date)+' to '+escapeHtml(points[points.length-1].date)+'</p>';
+ const bars=points.map((p,i)=>{const h=p.value/ceiling*plotHeight,x=42+i*slot+(slot-barWidth)/2,y=baseline-h;return '<rect role="button" tabindex="0" data-point="'+i+'" x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+barWidth.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="3" fill="#b7f36b"><title>'+escapeHtml(p.date+' · '+p.name+' · '+(mode==='pace'?fmt(p.value*60):p.value.toFixed(2))+' '+unit)+'</title></rect>';}).join('');
+ host.innerHTML='<div id="sxiRunPointDetail" class="muted" style="min-height:28px">Tap a bar to view the run and its result.</div><svg viewBox="0 0 600 205" role="img" aria-label="Running '+mode+' comparison bar chart" style="width:100%;max-height:240px"><line x1="42" y1="167" x2="568" y2="167" stroke="#607589"/>'+bars+'<text x="4" y="42" fill="#c6d2de" font-size="13">'+(mode==='pace'?fmt(ceiling*60):ceiling.toFixed(1))+'</text><text x="300" y="198" text-anchor="middle" fill="#c6d2de" font-size="13">Individual runs · '+unit+'</text></svg><p class="muted">'+points.length+' activities · '+escapeHtml(points[0].date)+' to '+escapeHtml(points[points.length-1].date)+'</p>';
  const detail=$id('sxiRunPointDetail');
  host.querySelectorAll('[data-point]').forEach(node=>{
   const show=()=>{const p=points[Number(node.getAttribute('data-point'))];if(p&&detail)detail.textContent=p.date+' · '+p.name+' · '+(mode==='pace'?fmt(p.value*60)+' min/km':p.value.toFixed(2)+' km/h');};
