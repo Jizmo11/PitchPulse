@@ -96,7 +96,7 @@ function renderTrends(){
  const magnitude=Math.pow(10,Math.floor(Math.log10(targetStep)));
  const step=[1,2,2.5,5,10].map(n=>n*magnitude).find(n=>n>=targetStep)||10*magnitude;
  const ceiling=4*step;
- const left=52,right=576,top=16,bottom=169,height=bottom-top,slot=(right-left)/points.length,barWidth=Math.min(34,slot*.7);
+ const left=52,right=576,top=31,bottom=169,height=bottom-top,slot=(right-left)/points.length,barWidth=Math.min(34,slot*.7);
 const auDate=d=>/^\d{4}-\d{2}-\d{2}$/.test(d)?d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4):d;
  const unit=mode==='pace'?'min/km':'km/h',label=v=>mode==='pace'?fmt(v*60):String(v);
  const grid=Array.from({length:Math.round(ceiling/step)+1},(_,i)=>i*step).map(v=>{const y=bottom-v/ceiling*height;return '<line x1="'+left+'" x2="'+right+'" y1="'+y.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="#83909a" stroke-opacity=".23"/><text x="'+(left-9)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" fill="#b9c6d2" font-size="12">'+label(v)+'</text>';}).join('');
