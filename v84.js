@@ -83,7 +83,7 @@ function drawSoccerMatch(){
  const linkedSample=sample&&state.fixtures.find(f=>f.id==='dribl:'+sample.id);
  const candidates=sample?adapter.suggestions(sample,matches):[];
  const samplePreview=sample?'<details style="margin:12px 0" open><summary style="cursor:pointer;font-weight:700;padding:10px 0">2024 Dribl match · linking test</summary><label>Verified fixture<select id="sxiDriblFixture">'+fixtureSamples.map(f=>'<option value="'+esc(f.id)+'" '+(f.id===sample.id?'selected':'')+'>'+esc(f.date+' · '+f.home+' vs '+f.away)+'</option>').join('')+'</select></label><p class="muted">Manually verified sample, not a live Dribl sync. '+esc(sample.date)+' · '+esc(sample.home)+' '+esc(sample.homeScore)+'–'+esc(sample.awayScore)+' '+esc(sample.away)+'. '+esc(sample.venue)+'.</p><p class="muted">Jayden Miller: '+esc(sample.playerEvents.map(e=>e.type+' '+e.minute+'′').join(', '))+'. Assists remain manual; other events may be incomplete.</p><p class="muted">'+(linkedSample?'Linked fixture saved.':'No saved link yet.')+' Matching Strava activities on this date: '+candidates.length+'.</p><label>Choose Strava recording<select id="sxiDriblCandidate"><option value="">Select recording to confirm</option>'+candidates.map(c=>'<option value="'+esc(c.activityId)+'" '+(linkedSample&&state.links[linkedSample.id]===c.activityId?'selected':'')+'>'+esc(c.activityName)+' ('+esc(c.activityId)+')</option>').join('')+'</select></label><button type="button" class="secondary" id="sxiDriblConfirm">Confirm match link</button><div id="sxiDriblStatus" class="muted" aria-live="polite"></div></details>':'';
- root.innerHTML='<h3>Selected match · Dribl &amp; statistics</h3>'+samplePreview+'<details style="margin:12px 0"><summary style="cursor:pointer;font-weight:700;padding:10px 0">Live Dribl connection · test</summary><p class="muted">Mt Barker United · 2026 Winter · Division 2A. Read-only fixture check; no goals, cards or match records are changed.</p><button type="button" class="secondary" id="v84DriblTest">Check Dribl fixtures</button><div id="v84DriblResult" class="muted" aria-live="polite"></div></details><label>Soccer match<select id="v84SoccerSelect"><option value="">Select a match</option>'+opts+'</select></label>'+stats+edit+'<details><summary style="cursor:pointer;font-weight:700;padding:12px 0">Manage saved fixtures ('+state.fixtures.length+')</summary><p class="muted">Existing fixtures and statistics are preserved. Remove only unwanted manual fixtures; original Strava activities are never deleted.</p>'+archive+'</details>';
+ root.innerHTML='<h3>Selected match · Dribl &amp; statistics</h3>'+samplePreview+'<details style="margin:12px 0"><summary style="cursor:pointer;font-weight:700;padding:10px 0">Discover Dribl fixtures · read only</summary><p class="muted">Mt Barker United · 2026 Winter · Division 2A. Read-only fixture check; no goals, cards or match records are changed.</p><button type="button" class="secondary" id="v84DriblTest">Find fixtures</button><div id="v84DriblResult" class="muted" aria-live="polite"></div></details><label>Soccer match<select id="v84SoccerSelect"><option value="">Select a match</option>'+opts+'</select></label>'+stats+edit+'<details><summary style="cursor:pointer;font-weight:700;padding:12px 0">Manage saved fixtures ('+state.fixtures.length+')</summary><p class="muted">Existing fixtures and statistics are preserved. Remove only unwanted manual fixtures; original Strava activities are never deleted.</p>'+archive+'</details>';
  const fixtureSelector=root.querySelector('#sxiDriblFixture');
  if(fixtureSelector)fixtureSelector.onchange=e=>{state.driblPreviewId=e.target.value;save();};
  const confirmSample=root.querySelector('#sxiDriblConfirm');
@@ -111,9 +111,19 @@ function drawSoccerMatch(){
    const data=await response.json();
    if(!response.ok)throw Error(data.error||'Dribl unavailable');
    const fixtures=Array.isArray(data.fixtures)?data.fixtures:[];
-   const sample=fixtures[0]||{};
-   const fields=Object.keys(sample).slice(0,15);
-   out.textContent=fixtures.length+' fixtures returned'+(data.more?' (more pages available)':'')+'. Sample available fields: '+(fields.join(', ')||'none')+'. No records imported. Goal scorer and card access still requires verification.';
+   const fields=Object.keys(fixtures[0]||{}).slice(0,20);
+   const str=v=>typeof v==='string'||typeof v==='number'?String(v):'';
+   const pick=(f,keys)=>{for(const key of keys){const value=f[key];if(value!==null&&value!==undefined&&str(value))return str(value)}return ''};
+   const name=(f,side)=>{const value=f[side]||f[side+'_team']||f[side+'Team'];return typeof value==='object'&&value?pick(value,['name','display_name','team_name','title']):str(value)};
+   const rows=fixtures.slice(0,30).map((f,i)=>{
+    const date=pick(f,['date','match_date','start_date','kick_off','kickoff','scheduled_at']);
+    const home=name(f,'home'),away=name(f,'away');
+    const round=pick(f,['round','round_name','round_number']);
+    const id=pick(f,['id','match_id','fixture_id']);
+    return '<div class="item"><strong>'+esc((date||'Date unverified')+' · '+(home&&away?home+' vs '+away:'Fixture '+(i+1)))+'</strong><div class="muted">'+esc((round?'Round '+round+' · ':'')+(id?'Dribl ID '+id:'No ID provided'))+'</div></div>';
+   }).join('');
+   out.innerHTML='<p class="muted">'+esc(fixtures.length)+' fixtures returned'+(data.more?' (additional pages exist)':'')+'. Showing up to 30 read-only entries. No match links, goals, cards or assists were changed.</p>'+(rows||'<p class="muted">No fixtures returned for the currently configured 2026 Mt Barker competition.</p>')+'<details><summary>Dribl response fields · diagnostics</summary><p class="muted">'+esc(fields.join(', ')||'none')+'</p></details>';
+   
   }catch(error){out.textContent='Dribl connection not confirmed: '+error.message;}
   finally{driblButton.disabled=false;}
  };
