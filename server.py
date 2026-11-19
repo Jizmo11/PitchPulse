@@ -8,9 +8,10 @@ import base64
 import hashlib
 import os
 import secrets
+import re
 import time
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit, parse_qs
 
 import requests
 from cryptography.fernet import Fernet, InvalidToken
@@ -353,6 +354,62 @@ def prevent_dribl_fixture_caching(response):
         response.headers['Expires'] = '0'
         response.headers['X-SXI-Backend'] = 'pr97'
     return response
+
+
+# Public-page diagnostic only: fixed host and path, no arbitrary URL fetching.
+@app.get('/api/dribl/public-page-check')
+def dribl_public_page_check():
+    supplied = request.args.get('url', '', type=str)
+    if len(supplied) > 500:
+        return fail('Match link is too long', 400)
+    parsed = urlsplit(supplied)
+    if (parsed.scheme != 'https' or parsed.netloc != 'csl.dribl.com'
+            or parsed.path != '/matchcentre' or parsed.username or parsed.password):
+        return fail('Enter a CSL Dribl HTTPS match-centre link', 400)
+    query = parse_qs(parsed.query)
+    match_id = query.get('m', [''])[0]
+    tenant_id = query.get('tenant', [''])[0]
+    if not re.fullmatch(r'[A-Za-z0-9_-]{5,32}', match_id):
+        return fail('Invalid Dribl match ID', 400)
+    if tenant_id and not re.fullmatch(r'[A-Za-z0-9_-]{5,32}', tenant_id):
+        return fail('Invalid Dribl tenant ID', 400)
+    try:
+        # Never follow redirects to a different host. Read at most 256 KiB.
+        upstream = requests.get('https://csl.dribl.com/matchcentre',
+            params={'m': match_id, **({'tenant': tenant_id} if tenant_id else {})},
+            headers={'Accept': 'text/html'}, timeout=15, allow_redirects=False,
+            stream=True)
+        try:
+            status = upstream.status_code
+            content_type = upstream.headers.get('Content-Type', '').split(';')[0].lower()
+            if status != 200 or content_type != 'text/html':
+                result = jsonify(read_only=True, http_status=status,
+                    content_type=content_type, html_available=False,
+                    message='Public HTML not accessible as an ordinary page response')
+            else:
+                chunks = []
+                total = 0
+                for chunk in upstream.iter_content(chunk_size=8192):
+                    total += len(chunk)
+                    if total > 262144:
+                        break
+                    chunks.append(chunk)
+                html = b''.join(chunks).decode('utf-8', errors='replace')
+                plain = re.sub(r'<[^>]*>', ' ', re.sub(r'<(script|style)\\b[^>]*>.*?</\\1>', ' ', html, flags=re.I | re.S))
+                result = jsonify(read_only=True, http_status=status,
+                    content_type=content_type, html_available=True,
+                    truncated=total > 262144, html_bytes=len(html.encode('utf-8')),
+                    visible_match_id=match_id in plain,
+                    visible_mount_barker='mount barker' in plain.lower(),
+                    visible_flinders='flinders' in plain.lower(),
+                    visible_lineup='line-up' in plain.lower() or 'starting lineup' in plain.lower(),
+                    message='HTML presence checks only; no extraction or import performed')
+        finally:
+            upstream.close()
+        result.headers['Cache-Control'] = 'no-store'
+        return result
+    except requests.RequestException:
+        return fail('Public Dribl page request failed', 502)
 
 
 # Read-only Dribl fixture proxy. No arbitrary upstream URL or user-supplied host.
