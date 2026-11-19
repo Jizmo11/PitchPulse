@@ -43,21 +43,21 @@ function mount(){
  // Preserve the original session selection controls and all existing GPS handlers.
  const originalGpsLabel=gps.querySelector('h3');if(originalGpsLabel)originalGpsLabel.classList.add('sxi-fmc-internal-title');
  function update(){
-   const focused=window.v7Focus?.kind==='soccer'?window.db?.matches?.[window.v7Focus.index]:null;
+   const focused=window.v7Focus?.kind==='soccer'?(typeof db!=='undefined'?db.matches?.[window.v7Focus.index]:null):null;
    const selected=focused||null;
    const text=(value,unit)=>value===null||value===undefined||value===''?'—':String(value)+(unit||'');
    const number=(...values)=>values.find(v=>typeof v==='number'&&Number.isFinite(v));
-   const dist=selected?number(selected.distance_km,selected.distanceKm,selected.km,typeof selected.distance==='number'?selected.distance/1000:undefined):undefined;
-   const speed=selected?number(selected.max_speed_kmh,selected.maxSpeedKmh,selected.maxSpeed):undefined;
-   const duration=selected?number(selected.moving_time,selected.elapsed_time,selected.duration):undefined;
-   const vals=[dist===undefined?'—':dist.toFixed(2)+' km',speed===undefined?'—':speed.toFixed(2)+' km/h',duration===undefined?'—':Math.round(duration/60)+' min','—','—','—'];
+   const dist=selected?number(selected.km):undefined;
+   const speed=selected?number(selected.top):undefined;
+   const duration=selected?number(selected.elapsedMin,selected.min):undefined;
+   const vals=[dist===undefined?'—':dist.toFixed(2)+' km',speed===undefined?'—':speed.toFixed(2)+' km/h',duration===undefined?'—':Math.round(duration)+' min','—','—','—'];
    // Only show selected-session values when verified in the source model.
    const goals=selected?number(selected.goals):undefined,assists=selected?number(selected.assists):undefined;
    if(goals!==undefined)vals[3]=String(goals);
    if(assists!==undefined)vals[4]=String(assists);
    if(goals!==undefined&&assists!==undefined)vals[5]=String(goals+assists);
    vals.forEach((v,i)=>{const n=document.getElementById('sxiFmcValue'+i);if(n)n.textContent=v;});
-   const match=selected?(/round/i.test(selected.name||selected.title||'')||selected.manual===true):document.getElementById('soccerType')?.value!=='training';
+   const match=selected?(typeof soccerKind==='function'?soccerKind(selected)==='match':/round/i.test(selected.name||'')):document.getElementById('soccerType')?.value!=='training';
    advancedSection.hidden=!match;halvesSection.hidden=!match;
    if(!match){advancedSection.open=false;halvesSection.open=false;}
    const late=document.getElementById('v84SoccerMatch');if(late&&late.parentElement!==statsBody)statsBody.append(late);
