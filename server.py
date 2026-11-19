@@ -340,33 +340,16 @@ def disconnect():
 @app.get('/api/dribl/fixtures')
 def dribl_fixtures():
     try:
-        tenant_response = requests.get('https://mc-api.dribl.com/api/tenants',
-            params={'mc_link':'csl.dribl.com','slug':'csl'}, timeout=12)
-        if not tenant_response.ok:
-            return fail('Dribl tenant lookup returned HTTP ' + str(tenant_response.status_code), 502)
-        raw_tenant = tenant_response.json()
-        def find_tenant(value):
-            if isinstance(value, dict):
-                if isinstance(value.get('id'), str) and value.get('id'):
-                    return value['id']
-                for key in ('data','tenant'):
-                    if key in value:
-                        found = find_tenant(value[key])
-                        if found: return found
-            if isinstance(value, list):
-                for item in value:
-                    found = find_tenant(item)
-                    if found: return found
-            return None
-        tenant = find_tenant(raw_tenant)
-        if not tenant:
-            return fail('Dribl CSL tenant ID could not be resolved.', 502)
+        # Diagnostic only: public CSL team URL supplies both IDs. No tenant discovery request.
+        # Keep the existing competition/season filters while testing a team-scoped query.
         params = {'date_range':'all','season':'k2Kp4R8KY5',
             'competition':'2PmjOYnjNZ','league':'njdyY34Ad5',
-            'club':'8BdVrJ5dE5','tenant':tenant,'timezone':'Australia/Adelaide'}
+            'team':'jmaVWBkANR','tenant':'VAN0oV7m69',
+            'timezone':'Australia/Adelaide'}
         response = requests.get('https://mc-api.dribl.com/api/fixtures',
             params=params, timeout=20)
-        response.raise_for_status()
+        if not response.ok:
+            return fail('Dribl fixture request returned HTTP ' + str(response.status_code), 502)
         payload = response.json()
         if not isinstance(payload, dict) or not isinstance(payload.get('data'), list):
             return fail('Dribl returned an unexpected fixture format.', 502)
