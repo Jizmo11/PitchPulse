@@ -800,4 +800,27 @@ function draw(){
 function init(){const year=document.getElementById('sxiHistoricYear');if(!year)return;year.addEventListener('change',draw);document.getElementById('sxiHistoricReview')?.addEventListener('toggle',e=>{if(e.target.open)draw()});window.addEventListener('pitchpulse:soccer-filters-changed',()=>{if(document.getElementById('sxiHistoricReview')?.open)draw()});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
-</script></body></html>
+</script><style id="sxi-fmc-v1-style">
+#soccer .sxi-fmc{margin:16px 0;padding:16px;border:1px solid #465149;border-radius:16px;background:#1d2421}
+#soccer .sxi-fmc-head h2{margin:0 0 4px;font-size:21px}
+#soccer .sxi-fmc-head p{margin:0 0 14px;font-size:12px}
+#soccer .sxi-fmc-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:15px}
+#soccer .sxi-fmc-kpi{background:#303835;border-radius:12px;padding:13px 5px;text-align:center;min-width:0}
+#soccer .sxi-fmc-kpi strong{display:block;font-size:21px;color:#b7f36b;overflow-wrap:anywhere}
+#soccer .sxi-fmc-kpi small{display:block;font-size:11px;color:#c3cbc5;margin-top:5px}
+#soccer .sxi-fmc-panel{margin:9px 0;border-radius:12px;background:#292f2c;border:1px solid #414c44;overflow:hidden}
+#soccer .sxi-fmc-summary{cursor:pointer;list-style:none;padding:15px;display:flex;flex-direction:column;gap:4px}
+#soccer .sxi-fmc-summary::-webkit-details-marker{display:none}
+#soccer .sxi-fmc-summary:after{content:'⌄';position:absolute;right:14px;top:14px;color:#b7f36b}
+#soccer .sxi-fmc-panel[open]>.sxi-fmc-summary:after{content:'⌃'}
+#soccer .sxi-fmc-summary{position:relative;padding-right:34px}
+#soccer .sxi-fmc-heading{font-weight:700;font-size:15px}
+#soccer .sxi-fmc-description{font-size:12px;color:#abb9ae}
+#soccer .sxi-fmc-body{padding:0 10px 12px}
+#soccer .sxi-fmc-body>.card{margin:0;border:0;background:transparent;padding:8px 0}
+#soccer .sxi-fmc-internal-title{display:none}
+#soccer .sxi-fmc-body #breakdownCard{margin:0}
+@media(max-width:380px){#soccer .sxi-fmc{padding:11px}#soccer .sxi-fmc-kpi strong{font-size:17px}}
+</style>
+<script defer src="./football-match-centre.js?v=100"></script>
+</body></html>
