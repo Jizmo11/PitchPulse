@@ -76,7 +76,29 @@ function drawSoccerMatch(){
   const linked=matches.find(m=>state.links[f.id]===idFor(m));
   return '<div class="item"><strong>'+esc(f.date)+' · Round '+esc(f.round)+' vs '+esc(f.opponent)+'</strong><div class="muted">'+(linked?'Linked: '+esc(activityName(linked)):'Not linked')+' · Goals '+esc(state.goals[f.id]??'—')+' · Assists '+esc(state.assists[f.id]??'—')+'</div><button type="button" class="secondary smallbtn" data-v84remove="'+esc(f.id)+'">Remove fixture</button></div>';
  }).join('');
- root.innerHTML='<h3>Selected match · Dribl &amp; statistics</h3><details style="margin:12px 0"><summary style="cursor:pointer;font-weight:700;padding:10px 0">Live Dribl connection · test</summary><p class="muted">Mt Barker United · 2026 Winter · Division 2A. Read-only fixture check; no goals, cards or match records are changed.</p><button type="button" class="secondary" id="v84DriblTest">Check Dribl fixtures</button><div id="v84DriblResult" class="muted" aria-live="polite"></div></details><label>Soccer match<select id="v84SoccerSelect"><option value="">Select a match</option>'+opts+'</select></label>'+stats+edit+'<details><summary style="cursor:pointer;font-weight:700;padding:12px 0">Manage saved fixtures ('+state.fixtures.length+')</summary><p class="muted">Existing fixtures and statistics are preserved. Remove only unwanted manual fixtures; original Strava activities are never deleted.</p>'+archive+'</details>';
+ const adapter=window.SXIDriblFixtureAdapter;
+ const sample=adapter&&adapter.normalise(adapter.sample);
+ const linkedSample=sample&&state.fixtures.find(f=>f.id==='dribl:'+sample.id);
+ const candidates=sample?adapter.suggestions(sample,matches):[];
+ const samplePreview=sample?'<details style="margin:12px 0"><summary style="cursor:pointer;font-weight:700;padding:10px 0">2024 Dribl match · linking test</summary><p class="muted">Manually verified sample, not a live Dribl sync. '+esc(sample.date)+' · '+esc(sample.home)+' '+esc(sample.homeScore)+'–'+esc(sample.awayScore)+' '+esc(sample.away)+'. '+esc(sample.venue)+'. Jayden Miller: yellow card (5th minute). Other events may be incomplete.</p><p class="muted">'+(linkedSample?'Linked fixture saved.':'No saved link yet.')+' Matching Strava activities on this date: '+candidates.length+'.</p><label>Choose Strava recording<select id="sxiDriblCandidate"><option value="">Select recording to confirm</option>'+candidates.map(c=>'<option value="'+esc(c.activityId)+'" '+(linkedSample&&state.links[linkedSample.id]===c.activityId?'selected':'')+'>'+esc(c.activityName)+' ('+esc(c.activityId)+')</option>').join('')+'</select></label><button type="button" class="secondary" id="sxiDriblConfirm">Confirm match link</button><div id="sxiDriblStatus" class="muted" aria-live="polite"></div></details>':'';
+ root.innerHTML='<h3>Selected match · Dribl &amp; statistics</h3>'+samplePreview+'<details style="margin:12px 0"><summary style="cursor:pointer;font-weight:700;padding:10px 0">Live Dribl connection · test</summary><p class="muted">Mt Barker United · 2026 Winter · Division 2A. Read-only fixture check; no goals, cards or match records are changed.</p><button type="button" class="secondary" id="v84DriblTest">Check Dribl fixtures</button><div id="v84DriblResult" class="muted" aria-live="polite"></div></details><label>Soccer match<select id="v84SoccerSelect"><option value="">Select a match</option>'+opts+'</select></label>'+stats+edit+'<details><summary style="cursor:pointer;font-weight:700;padding:12px 0">Manage saved fixtures ('+state.fixtures.length+')</summary><p class="muted">Existing fixtures and statistics are preserved. Remove only unwanted manual fixtures; original Strava activities are never deleted.</p>'+archive+'</details>';
+ const confirmSample=root.querySelector('#sxiDriblConfirm');
+ if(confirmSample)confirmSample.onclick=()=>{
+  const candidate=root.querySelector('#sxiDriblCandidate')?.value;
+  const status=root.querySelector('#sxiDriblStatus');
+  if(!candidate||!candidates.some(c=>c.activityId===candidate)){status.textContent='Choose a matching Strava recording first.';return}
+  if(!confirm('Link this Dribl fixture to the selected Strava recording? Existing manual goals and assists will be preserved.'))return;
+  const fixtureId='dribl:'+sample.id;
+  const existing=state.fixtures.find(f=>f.id===fixtureId);
+  if(existing&&state.links[fixtureId]&&state.links[fixtureId]!==candidate){status.textContent='A different recording is already linked. Remove the existing fixture before relinking.';return}
+  if(state.fixtures.some(f=>f.id!==fixtureId&&state.links[f.id]===candidate)){status.textContent='This Strava recording is already linked to another fixture. No changes made.';return}
+  if(!existing)state.fixtures.push({id:fixtureId,date:sample.date,round:'',opponent:sample.away,result:sample.homeScore+' – '+sample.awayScore,officialGoals:'',cards:'Yellow 5′',source:'dribl-manual-verified',driblMatchId:sample.id});
+  state.links[fixtureId]=candidate;
+  state.selectedMatchId=candidate;
+  save();
+  const activity=matches.find(m=>idFor(m)===candidate);
+  if(activity)window.dispatchEvent(new CustomEvent('pitchpulse:soccer-selected',{detail:activity}));
+ };
  const driblButton=root.querySelector('#v84DriblTest');
  driblButton.onclick=async()=>{
   const out=root.querySelector('#v84DriblResult');driblButton.disabled=true;out.textContent='Connecting to Dribl…';
