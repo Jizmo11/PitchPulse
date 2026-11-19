@@ -52,6 +52,22 @@
 #soccer .sxi-football-history .sxi-session-card{min-width:0;overflow-wrap:anywhere}
 #soccer #v82ContribBreakdown summary{color:#b7f36b}
 @media(max-width:390px){#soccer .sxi-football-history .sxi-session-card{padding:8px 5px;font-size:11px}}
+</style><style>
+/* Football UI v2: inline selectors and integrated match data */
+#soccer .sxi-v2-native{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+#soccer .sxi-v2-selector{position:relative;min-width:0}
+#soccer .sxi-v2-trigger{width:100%;min-height:42px;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:8px;background:#26313b;color:#edf4fa;border:1px solid #48535d;border-radius:10px;padding:9px 11px}
+#soccer .sxi-v2-options{display:none;position:absolute;top:calc(100% + 5px);left:0;right:0;z-index:30;background:#28343e;border:1px solid #53606a;border-radius:12px;padding:7px;max-height:260px;overflow:auto;box-shadow:0 12px 25px #0008}
+#soccer .sxi-v2-selector.sxi-v2-open .sxi-v2-options{display:grid;gap:4px}
+#soccer .sxi-v2-options button{background:transparent;color:#edf4fa;text-align:left;padding:10px;border-radius:7px;font-size:13px;overflow-wrap:anywhere}
+#soccer .sxi-v2-options button[aria-selected=true]{background:#b7f36b;color:#15202a}
+#soccer .sxi-v2-month .sxi-v2-options{grid-template-columns:repeat(3,minmax(0,1fr));min-width:235px}
+#soccer .sxi-v2-month .sxi-v2-options button{text-align:center;font-size:12px;padding:10px 3px}
+#soccer .sxi-v2-type .sxi-v2-options{grid-template-columns:repeat(3,minmax(0,1fr));min-width:235px}
+#soccer .sxi-v2-type .sxi-v2-options button{text-align:center;font-size:12px;padding:10px 3px}
+#soccer #v84SoccerMatch{margin-top:0}
+#soccer #v84SoccerMatch h3{font-size:16px}
+#soccer .sxi-v2-match{border-top:1px solid #394955;padding-top:14px;margin-top:16px}
 </style></head><body><div id="strideelevenSplash" role="status" aria-label="Loading StrideEleven"><img src="./splash-strideeleven.jpg" alt="StrideEleven — Football Performance" onerror="this.parentNode.remove()"></div><script>(function(){function closeSplash(){var el=document.getElementById("strideelevenSplash");if(!el)return;el.classList.add("sxi-hide");setTimeout(function(){if(el.parentNode)el.remove()},400)}window.addEventListener("load",function(){setTimeout(closeSplash,2500)},{once:true});setTimeout(closeSplash,10000)})();</script>
 <header class="v82-global-header"><div class="v82-header-row"><div><div class="accent v82-brand">StrideEleven</div><h1 id="pageTitle">Performance Dashboard</h1><div class="muted" id="v82Tagline">EVERY STRIDE, EVERY MATCH</div></div><button id="v82HeaderAction" class="v82-header-action hidden" type="button" onclick="v82HeaderClick()">+ Create Workout</button></div></header>
 <main class="wrap">
@@ -711,5 +727,33 @@ document.addEventListener('DOMContentLoaded',()=>{sxiCheckBuild();});
   history.classList.toggle('sxi-expanded-run-history',history.querySelectorAll('.sxi-session-card').length>3);
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script><script>
+/* Accessible button-based Football selectors: original selects remain authoritative. */
+(function(){
+'use strict';
+const ids=['soccerYear','soccerMonth','soccerType','soccerDetailSelect','breakMatch','v84SoccerSelect'];
+const monthNames=['All months','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function closeAll(except){document.querySelectorAll('#soccer .sxi-v2-selector').forEach(w=>{if(w!==except){w.classList.remove('sxi-v2-open');w.querySelector('.sxi-v2-trigger')?.setAttribute('aria-expanded','false')}})}
+function decorate(select){
+ if(!select||select.dataset.sxiV2)return;
+ select.dataset.sxiV2='1';select.classList.add('sxi-v2-native');
+ const wrap=document.createElement('div');wrap.className='sxi-v2-selector'+(select.id==='soccerMonth'?' sxi-v2-month':select.id==='soccerType'?' sxi-v2-type':'');
+ const trigger=document.createElement('button');trigger.type='button';trigger.className='sxi-v2-trigger';trigger.setAttribute('aria-expanded','false');trigger.setAttribute('aria-label',select.getAttribute('aria-label')||select.closest('label')?.textContent?.trim()||select.id);
+ const choices=document.createElement('div');choices.className='sxi-v2-options';
+ wrap.append(trigger,choices);select.insertAdjacentElement('afterend',wrap);
+ function refresh(){
+  const opts=Array.from(select.options);const selected=opts.find(o=>o.value===select.value)||opts[0];
+  trigger.textContent=(selected?.textContent||'Choose session')+' ▾';
+  choices.replaceChildren();
+  opts.forEach((o,i)=>{const btn=document.createElement('button');btn.type='button';btn.textContent=select.id==='soccerMonth'&&o.value!=='all'?monthNames[Number(o.value)]||o.textContent:o.textContent;btn.setAttribute('aria-selected',String(o.value===select.value));btn.disabled=o.disabled;btn.onclick=()=>{select.selectedIndex=i;select.dispatchEvent(new Event('change',{bubbles:true}));closeAll();refresh()};choices.appendChild(btn)});
+ }
+ trigger.onclick=()=>{const open=!wrap.classList.contains('sxi-v2-open');closeAll();wrap.classList.toggle('sxi-v2-open',open);trigger.setAttribute('aria-expanded',String(open));if(open)refresh()};
+ select.addEventListener('change',refresh);new MutationObserver(refresh).observe(select,{childList:true,subtree:true,attributes:true,attributeFilter:['selected','disabled']});refresh();
+}
+function init(){ids.forEach(id=>decorate(document.getElementById(id)));const root=document.getElementById('v84SoccerMatch');if(root)new MutationObserver(()=>decorate(document.getElementById('v84SoccerSelect'))).observe(root,{childList:true})}
+document.addEventListener('click',e=>{if(!e.target.closest('#soccer .sxi-v2-selector'))closeAll()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script></body></html>
