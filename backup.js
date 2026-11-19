@@ -1,7 +1,7 @@
 /* PitchPulse local backup/restore. No server upload and no Strava credentials. */
 (()=>{
 'use strict';
-const KEYS=['pitchpulse_v1','pitchpulse_v84','pitchpulse_home_plan','pitchpulse_last_sync','sxi_football_classifications_v1'];
+const KEYS=['pitchpulse_v1','pitchpulse_v84','pitchpulse_home_plan','pitchpulse_last_sync','sxi_football_classifications_v1','sxi_football_exclusions_v1'];
 const DATA=['pitchpulse_v1','pitchpulse_v84','pitchpulse_home_plan','sxi_football_classifications_v1'];
 const version=1;
 const byId=id=>document.getElementById(id);
@@ -15,7 +15,7 @@ const validate=(key,value)=>{
  }else if(key==='pitchpulse_v84'){
   if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Invalid v8.4 data.');
   for(const k of ['fixtures','checkins','achievements','schedule'])if(value[k]!==undefined&&!Array.isArray(value[k]))throw Error('Invalid '+k+' records.');
- }else if(key==='sxi_football_classifications_v1'){if(!value||typeof value!=='object'||Array.isArray(value)||Object.entries(value).some(([k,v])=>!/^strava:[^ ]+$/.test(k)||!['match','training'].includes(v)))throw Error('Invalid historical football classifications.');}else if(key==='pitchpulse_home_plan'&&value!==null&&typeof value!=='object'&&typeof value!=='string')throw Error('Invalid home plan.');
+ }else if(key==='sxi_football_exclusions_v1'){if(!value||typeof value!=='object'||Array.isArray(value)||Object.entries(value).some(([k,v])=>!/^strava:[^ ]+$/.test(k)||v!==true))throw Error('Invalid historical football exclusions.');}else if(key==='sxi_football_classifications_v1'){if(!value||typeof value!=='object'||Array.isArray(value)||Object.entries(value).some(([k,v])=>!/^strava:[^ ]+$/.test(k)||!['match','training'].includes(v)))throw Error('Invalid historical football classifications.');}else if(key==='pitchpulse_home_plan'&&value!==null&&typeof value!=='object'&&typeof value!=='string')throw Error('Invalid home plan.');
 };
 const download=(payload,name)=>{
  const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
