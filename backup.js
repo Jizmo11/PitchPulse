@@ -2,7 +2,7 @@
 (()=>{
 'use strict';
 const KEYS=['pitchpulse_v1','pitchpulse_v84','pitchpulse_home_plan','pitchpulse_last_sync','sxi_football_classifications_v1','sxi_football_exclusions_v1'];
-const DATA=['pitchpulse_v1','pitchpulse_v84','pitchpulse_home_plan','sxi_football_classifications_v1'];
+const DATA=['pitchpulse_v1','pitchpulse_v84','pitchpulse_home_plan','sxi_football_classifications_v1','sxi_football_exclusions_v1'];
 const version=1;
 const byId=id=>document.getElementById(id);
 const message=(s,bad=false)=>{const el=byId('ppBackupStatus');if(el){el.textContent=s;el.style.color=bad?'#f5a35b':''}};
