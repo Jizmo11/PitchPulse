@@ -12,6 +12,14 @@ const sample=Object.freeze({
  playerEvents:[{player:'Jayden Miller',shirt:11,type:'yellow',minute:5}],
  eventCoverage:'unverified-completeness'
 });
+const mercedes=Object.freeze({
+ source:'dribl-manual-verified',id:'AN06WRnwkd',date:'2024-04-13',
+ home:'Mercedes 2A',away:'Adelaide Hills 2A',homeScore:1,awayScore:7,
+ venue:'Wita Wirra Park (Park 18)',season:'2024',division:'CSL Division 2A',
+ round:'2',kickoff:'15:00',url:'https://csl.dribl.com/matchcentre?m=AN06WRnwkd',
+ playerEvents:[{player:'Jayden Miller',shirt:11,type:'goal',minute:31},{player:'Jayden Miller',shirt:11,type:'yellow',minute:41},{player:'Jayden Miller',shirt:11,type:'substitution',minute:90}],
+ eventCoverage:'unverified-completeness'
+});
 function normalise(raw){
  if(!raw||typeof raw!=='object')throw Error('Fixture must be an object');
  const id=String(raw.id||'').trim(),date=String(raw.date||'');
@@ -31,7 +39,7 @@ function suggestions(fixture,activities){
  status:'requires-user-confirmation'
  }));
 }
-const api=Object.freeze({sample,normalise,suggestions});
+const api=Object.freeze({sample,mercedes,fixtures:Object.freeze([sample,mercedes]),normalise,suggestions});
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 else root.SXIDriblFixtureAdapter=api;
 })(typeof window!=='undefined'?window:globalThis);
