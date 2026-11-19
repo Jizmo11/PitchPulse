@@ -611,7 +611,7 @@ async function sxiCheckBuild(){
  }catch(e){badge.textContent='SXI Build · unavailable';details.textContent='Unable to read deployment: '+e.message;}
 }
 document.addEventListener('DOMContentLoaded',()=>{sxiCheckBuild();});
-</script><script defer src="./guided-workout.js?v=70"></script><script defer src="./training-calendar.js?v=75"></script><script defer src="./running-performance.js"></script><script defer src="./backup.js"></script><script defer src="./dribl-fixture-adapter.js?v=91"></script><script defer src="./v84.js"></script>
+</script><script defer src="./guided-workout.js?v=70"></script><script defer src="./training-calendar.js?v=75"></script><script defer src="./running-performance.js"></script><script defer src="./backup.js"></script><script defer src="./dribl-fixture-adapter.js?v=91"></script><script defer src="./v84.js?v=92"></script>
 <script>
 (function(){
  function attach(){const panel=document.getElementById('sxiFootballGpsPanel'),breakdown=document.getElementById('breakdownCard');if(!panel||!breakdown)return;panel.appendChild(breakdown);const type=document.getElementById('soccerType');const update=()=>{const match=window.v7Focus?.kind==='soccer'?soccerKind(db.matches[window.v7Focus.index])==='match':type?.value!=='training';breakdown.hidden=!match;if(!match)breakdown.open=false;};document.addEventListener('click',e=>{if(e.target.closest('#matchHistory .sxi-session-card'))setTimeout(update,0);});type?.addEventListener('change',update);update();}
