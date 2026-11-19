@@ -336,6 +336,25 @@ def disconnect():
 
 
 
+# Read-only runtime diagnostic: no credentials, tokens, or request details.
+@app.get('/api/diagnostics/version')
+def runtime_version():
+    response = jsonify(app='StrideEleven', backend='pr97', commit=os.environ.get('RENDER_GIT_COMMIT', 'unknown'))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    return response
+
+
+@app.after_request
+def prevent_dribl_fixture_caching(response):
+    if request.path == '/api/dribl/fixtures':
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        response.headers['X-SXI-Backend'] = 'pr97'
+    return response
+
+
 # Read-only Dribl fixture proxy. No arbitrary upstream URL or user-supplied host.
 @app.get('/api/dribl/fixtures')
 def dribl_fixtures():
