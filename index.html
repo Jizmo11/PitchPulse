@@ -171,7 +171,8 @@ function addInjury(){if(!selectedArea)return alert('Select a body area first.');
 const days=['Monday · Strength A','Tuesday · Easy 5 km','Wednesday · Strength B','Thursday · Easy 5 km','Friday · Rest','Saturday · Soccer preparation','Sunday · Rest'];for(let i=1;i<=12;i++)$('week').innerHTML+=`<option value="${i}">Week ${i}</option>`;$('week').onchange=render;
 function saveWorkout(){const name=$('workoutName').value.trim();if(!name)return alert('Enter a workout name.');db.workouts.unshift({name,notes:$('workoutNotes').value,date:today});save();$('workoutName').value='';$('workoutNotes').value=''}
 function del(type,index){if(!confirm('Delete this entry?'))return;db[type].splice(index,1);save();if(type==='matches')setupSoccerFilters()}
-function soccerKind(m){const key=m.stravaId?'strava:'+m.stravaId:null;let override=null;try{override=key?JSON.parse(localStorage.getItem('sxi_football_classifications_v1')||'{}')[key]:null}catch(e){}return override==='match'||override==='training'?override:(m.stravaId?(/round/i.test(String(m.name||''))?'match':'training'):'match')}
+function sxiHistoricMatchSuggestion(m){if(!m||!m.stravaId||!/^(2024)-(0[4-9])-([0-3][0-9])$/.test(String(m.date||'')))return '';const d=new Date(String(m.date)+'T12:00:00');if(Number.isNaN(d.getTime()))return '';const day=d.getDay();return day===6?'match':(day===5||day===3?'review':'')}
+function soccerKind(m){const key=m.stravaId?'strava:'+m.stravaId:null;let override=null;try{override=key?JSON.parse(localStorage.getItem('sxi_football_classifications_v1')||'{}')[key]:null}catch(e){}return override==='match'||override==='training'?override:(m.stravaId?(/round/i.test(String(m.name||''))?'match':(sxiHistoricMatchSuggestion(m)==='match'?'match':'training')):'match')}
 function soccerStatsIncluded(m){if(!m.stravaId)return true;try{return JSON.parse(localStorage.getItem('sxi_football_exclusions_v1')||'{}')['strava:'+m.stravaId]!==true}catch(e){return true}}
 function filteredSoccer(){const y=$('soccerYear')?.value||'all',mo=$('soccerMonth')?.value||'all',kind=$('soccerType')?.value||'all',q=($('soccerSearch')?.value||'').trim().toLowerCase();return db.matches.map((m,i)=>({m,i})).filter(({m})=>(y==='all'||String(m.date||'').slice(0,4)===y)&&(mo==='all'||String(m.date||'').slice(5,7)===mo)&&(kind==='all'||soccerKind(m)===kind)&&(!q||String(m.name||'').toLowerCase().includes(q)));}
 function setupSoccerFilters(){const y=$('soccerYear'),mo=$('soccerMonth');if(!y||!mo)return;const old=y.value;const years=[...new Set(db.matches.map(m=>String(m.date||'').slice(0,4)).filter(x=>/^\d{4}$/.test(x)))].sort().reverse();y.innerHTML='<option value="all">All years</option>'+years.map(x=>'<option value="'+x+'">'+x+'</option>').join('');y.value=years.includes(old)?old:(years.includes(String(new Date().getFullYear()))?String(new Date().getFullYear()):'all');if(mo.options.length===1){for(let i=1;i<=12;i++){const opt=document.createElement('option');opt.value=String(i).padStart(2,'0');opt.textContent=new Date(2024,i-1,1).toLocaleString('en-AU',{month:'long'});mo.append(opt);}}}
@@ -779,14 +780,14 @@ function draw(){
   const km=Number(m.km)||0,minutes=Number(m.elapsedMin||m.min)||0;
   const title=document.createElement('div');title.style.fontWeight='650';title.textContent=fmt(m.date)+' · '+day+' · '+escText(m.name);row.append(title);
   const hint=document.createElement('p');hint.className='muted';
-  const suspicious=minutes>240||km>25||minutes<10;
-  hint.textContent=km.toFixed(2)+' km · '+Math.round(minutes)+' min'+(suspicious?' · ⚠ Unusual recording: check original Strava activity':'')+(day==='Sat'?' · Saturday: possible match':'');
+  const suspicious=minutes>240||km>25||minutes<10;const suggestion=sxiHistoricMatchSuggestion(m);const manual=get()['strava:'+m.stravaId];const reviewNeeded=!manual&&!/round/i.test(String(m.name||''))&&!!suggestion;
+  hint.textContent=km.toFixed(2)+' km · '+Math.round(minutes)+' min'+(suspicious?' · ⚠ Unusual recording: check original Strava activity':'')+(reviewNeeded?(suggestion==='match'?' · ⚑ Suggested Match — review required':' · ⚑ Possible match — review required'):'');
   row.append(hint);
   const selector=document.createElement('select');selector.setAttribute('aria-label','Classification for '+fmt(m.date));
-  [['','Automatic (title rule)'],['match','Match'],['training','Training']].forEach(([value,label])=>selector.add(new Option(label,value)));
+  [['','Automatic (title / historical suggestion)'],['match','Confirm Match'],['training','Training']].forEach(([value,label])=>selector.add(new Option(label,value)));
   const key='strava:'+m.stravaId;selector.value=get()[key]||'';
   selector.onchange=()=>{const data=get();if(selector.value)data[key]=selector.value;else delete data[key];try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){alert('Unable to save classification on this device');return}if(typeof updateSoccerFilters==='function')updateSoccerFilters();draw()};
-  row.append(selector);
+  row.append(selector);if(reviewNeeded){const flag=document.createElement('p');flag.className='muted';flag.textContent='Review required: confirm Match or choose Training. Automatic keeps the provisional classification.';row.append(flag)}
   const excluded=(()=>{try{return JSON.parse(localStorage.getItem('sxi_football_exclusions_v1')||'{}')}catch(e){return {}}})();
   const label=document.createElement('label');label.style.display='flex';label.style.gap='9px';label.style.alignItems='center';label.style.marginTop='9px';
   const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=!excluded[key];checkbox.style.width='18px';checkbox.style.margin='0';
