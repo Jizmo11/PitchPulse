@@ -395,7 +395,7 @@ def dribl_public_page_check():
                         break
                     chunks.append(chunk)
                 html = b''.join(chunks).decode('utf-8', errors='replace')
-                plain = re.sub(r'<[^>]*>', ' ', re.sub(r'<(script|style)\\b[^>]*>.*?</\\1>', ' ', html, flags=re.I | re.S))
+                plain = re.sub(r'<[^>]*>', ' ', re.sub(r'<(script|style)\b[^>]*>.*?</\1>', ' ', html, flags=re.I | re.S))
                 result = jsonify(read_only=True, http_status=status,
                     content_type=content_type, html_available=True,
                     truncated=total > 262144, html_bytes=len(html.encode('utf-8')),
