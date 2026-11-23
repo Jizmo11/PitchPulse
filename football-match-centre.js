@@ -56,7 +56,7 @@ function mount(){
  // Preserve the original session selection controls and all existing GPS handlers.
  const originalGpsLabel=gps?.querySelector('h3');if(originalGpsLabel)originalGpsLabel.classList.add('sxi-fmc-internal-title');
  function update(){
-   const focused=window.v7Focus?.kind==='soccer'?(typeof db!=='undefined'?db.matches?.[window.v7Focus.index]:null):null;
+   const focused=(typeof v7Focus!=='undefined'&&v7Focus?.kind==='soccer')?(typeof db!=='undefined'?db.matches?.[v7Focus.index]:null):null;
    const liveGps=document.getElementById('sxiFootballGpsPanel');if(liveGps&&liveGps.parentElement!==gpsBody){gpsBody.replaceChildren(liveGps);}
    const selected=focused||null;
    const text=(value,unit)=>value===null||value===undefined||value===''?'—':String(value)+(unit||'');
@@ -77,7 +77,7 @@ function mount(){
    const late=document.getElementById('v84SoccerMatch');if(late&&late.parentElement!==statsBody)statsBody.append(late);
  }
  const type=document.getElementById('soccerType');if(type)type.addEventListener('change',()=>setTimeout(update,0));
- document.addEventListener('pitchpulse:soccer-selected',()=>setTimeout(update,0));
+ window.addEventListener('pitchpulse:soccer-selected',()=>setTimeout(update,0));
  root.addEventListener('click',e=>{if(e.target.closest('#matchHistory, #v84SoccerMatch'))setTimeout(update,80);});
  update();
 }
