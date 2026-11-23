@@ -86,6 +86,12 @@ window.addEventListener('load',mount);
 // Existing Football UI can rebuild sections after filtering or selecting sessions.
 // Keep the Match Centre anchored immediately after the recent-session selector.
 const keepMounted=()=>{const h=document.querySelector('#soccer .sxi-football-history'),c=document.getElementById('sxiFmc');if(h&&c&&c.previousElementSibling!==h)h.insertAdjacentElement('afterend',c);else if(h&&!c)mount();};
+let scheduled=false;
+const scheduleMount=()=>{if(scheduled)return;scheduled=true;setTimeout(()=>{scheduled=false;keepMounted();},50);};
+const observeRoot=()=>{const root=document.getElementById('soccer');if(!root)return false;
+ const observer=new MutationObserver(records=>{if(records.some(r=>r.type==='childList'&&([...r.addedNodes,...r.removedNodes].some(n=>n.nodeType===1&&(n.id==='sxiFmc'||n.classList?.contains('sxi-football-history')||n.querySelector?.('#sxiFmc, .sxi-football-history'))))))scheduleMount();});
+ observer.observe(root,{childList:true,subtree:true});scheduleMount();return true;};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observeRoot);else observeRoot();
 window.addEventListener('pageshow',keepMounted);
 document.addEventListener('click',e=>{if(e.target.closest('#soccer'))setTimeout(keepMounted,120);});
 let attempts=0;const retry=setInterval(()=>{mount();if(document.getElementById('sxiFmc')||++attempts>25)clearInterval(retry);},400);
