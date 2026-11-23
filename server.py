@@ -122,6 +122,10 @@ def dribl_fixture_adapter_script():
     return send_from_directory(ROOT, 'dribl-fixture-adapter.js', mimetype='application/javascript')
 
 
+@app.get('/football-match-centre.js')
+def football_match_centre_script():
+    return send_from_directory(ROOT, 'football-match-centre.js', mimetype='application/javascript')
+
 @app.get('/training-calendar.js')
 def training_calendar_script():
     return send_from_directory(ROOT, 'training-calendar.js', mimetype='application/javascript')

@@ -39,6 +39,9 @@ function mount(){
  const contributions=document.getElementById('v82MatchEntry');
  const goalCard=document.getElementById('v82Goals')?.closest('.card');
  if(goalCard)statsBody.append(goalCard);
+ const overview=root.querySelector('.sxi-football-overview');
+ if(overview){const summary=el('summary','','Season performance overview');const wrap=el('details','sxi-fmc-season');overview.parentNode.insertBefore(wrap,overview);wrap.append(summary,overview);}
+ const topGoals=root.querySelector('.sxi-football-goals');if(topGoals&&topGoals!==goalCard)statsBody.append(topGoals);
  const dribl=document.getElementById('v84SoccerMatch');if(dribl)statsBody.append(dribl);
  // Preserve the original session selection controls and all existing GPS handlers.
  const originalGpsLabel=gps.querySelector('h3');if(originalGpsLabel)originalGpsLabel.classList.add('sxi-fmc-internal-title');
@@ -69,4 +72,5 @@ function mount(){
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
 window.addEventListener('load',mount);
+let attempts=0;const retry=setInterval(()=>{mount();if(document.getElementById('sxiFmc')||++attempts>25)clearInterval(retry);},400);
 })();
