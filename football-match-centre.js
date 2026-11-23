@@ -56,7 +56,7 @@ function mount(){
  // Preserve the original session selection controls and all existing GPS handlers.
  const originalGpsLabel=gps?.querySelector('h3');if(originalGpsLabel)originalGpsLabel.classList.add('sxi-fmc-internal-title');
  function update(){
-   const focused=window.v7Focus?.kind==='soccer'?(typeof db!=='undefined'?db.matches?.[window.v7Focus.index]:null):null;
+   const focused=(typeof v7Focus!=='undefined'&&v7Focus?.kind==='soccer')?(typeof db!=='undefined'?db.matches?.[v7Focus.index]:null):null;
    const liveGps=document.getElementById('sxiFootballGpsPanel');if(liveGps&&liveGps.parentElement!==gpsBody){gpsBody.replaceChildren(liveGps);}
    const selected=focused||null;
    const text=(value,unit)=>value===null||value===undefined||value===''?'—':String(value)+(unit||'');
@@ -77,7 +77,7 @@ function mount(){
    const late=document.getElementById('v84SoccerMatch');if(late&&late.parentElement!==statsBody)statsBody.append(late);
  }
  const type=document.getElementById('soccerType');if(type)type.addEventListener('change',()=>setTimeout(update,0));
- document.addEventListener('pitchpulse:soccer-selected',()=>setTimeout(update,0));
+ window.addEventListener('pitchpulse:soccer-selected',()=>setTimeout(update,0));
  root.addEventListener('click',e=>{if(e.target.closest('#matchHistory, #v84SoccerMatch'))setTimeout(update,80);});
  update();
 }
@@ -86,6 +86,12 @@ window.addEventListener('load',mount);
 // Existing Football UI can rebuild sections after filtering or selecting sessions.
 // Keep the Match Centre anchored immediately after the recent-session selector.
 const keepMounted=()=>{const h=document.querySelector('#soccer .sxi-football-history'),c=document.getElementById('sxiFmc');if(h&&c&&c.previousElementSibling!==h)h.insertAdjacentElement('afterend',c);else if(h&&!c)mount();};
+let scheduled=false;
+const scheduleMount=()=>{if(scheduled)return;scheduled=true;setTimeout(()=>{scheduled=false;keepMounted();},50);};
+const observeRoot=()=>{const root=document.getElementById('soccer');if(!root)return false;
+ const observer=new MutationObserver(records=>{if(records.some(r=>r.type==='childList'&&([...r.addedNodes,...r.removedNodes].some(n=>n.nodeType===1&&(n.id==='sxiFmc'||n.classList?.contains('sxi-football-history')||n.querySelector?.('#sxiFmc, .sxi-football-history'))))))scheduleMount();});
+ observer.observe(root,{childList:true,subtree:true});scheduleMount();return true;};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observeRoot);else observeRoot();
 window.addEventListener('pageshow',keepMounted);
 document.addEventListener('click',e=>{if(e.target.closest('#soccer'))setTimeout(keepMounted,120);});
 let attempts=0;const retry=setInterval(()=>{mount();if(document.getElementById('sxiFmc')||++attempts>25)clearInterval(retry);},400);
