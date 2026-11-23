@@ -15,6 +15,15 @@ function mount(){
  const gps=document.getElementById('sxiFootballGpsPanel');
  const history=document.querySelector('#soccer .sxi-football-history');
  if(!root||!history)return;
+ const filterCard=document.getElementById('soccerYear')?.closest('.card');
+ if(filterCard&&!document.getElementById('sxiFmcFilters')){
+   const fold=el('details','sxi-fmc-filters');fold.id='sxiFmcFilters';
+   const summary=el('summary','sxi-fmc-filter-summary');
+   const updateSummary=()=>{const year=document.getElementById('soccerYear'),month=document.getElementById('soccerMonth'),type=document.getElementById('soccerType');const parts=[year?.selectedOptions?.[0]?.textContent||'All years',month?.value==='all'?'All months':month?.selectedOptions?.[0]?.textContent||'',type?.selectedOptions?.[0]?.textContent||'All sessions'];summary.textContent='⚙ Filters · '+parts.filter(Boolean).join(' · ');};
+   filterCard.parentElement.insertBefore(fold,filterCard);fold.append(summary,filterCard);
+   ['soccerYear','soccerMonth','soccerType'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>setTimeout(updateSummary,0)));
+   updateSummary();
+ }
  const existing=document.getElementById('sxiFmc');
  if(existing){if(existing.previousElementSibling!==history)history.insertAdjacentElement('afterend',existing);return;}
  const centre=el('section','sxi-fmc');centre.id='sxiFmc';
