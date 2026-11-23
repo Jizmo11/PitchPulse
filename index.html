@@ -839,6 +839,7 @@ function init(){
  const moves=[['sxiFootballGpsPanel','sxiFmcGpsBody'],['breakdownCard','sxiFmcAdvancedBody'],['v84SoccerMatch','sxiFmcStatsBody']];
  moves.forEach(([id,dest])=>{const el=document.getElementById(id),to=document.getElementById(dest);if(el&&to&&el.parentElement!==to)to.append(el)});
  const hist=document.querySelector('#soccer .sxi-football-history'),centre=document.getElementById('sxiFmc');if(hist&&centre&&hist.nextElementSibling!==centre)hist.after(centre);
+ const gpsPanel=document.getElementById('sxiFmcGps');window.addEventListener('pitchpulse:soccer-selected',()=>{if(gpsPanel)gpsPanel.open=true});
  update();
  window.addEventListener('pitchpulse:soccer-selected',()=>setTimeout(update,0));
  root.addEventListener('click',e=>{if(e.target.closest('#matchHistory, #v7SoccerFocus'))setTimeout(update,100)});
