@@ -16,13 +16,12 @@ function mount(){
  const history=document.querySelector('#soccer .sxi-football-history');
  if(!root||!history)return;
  const filterCard=document.getElementById('soccerYear')?.closest('.card');
- if(filterCard&&!document.getElementById('sxiFmcFilters')){
-   const fold=el('details','sxi-fmc-filters');fold.id='sxiFmcFilters';
-   const summary=el('summary','sxi-fmc-filter-summary');
-   const updateSummary=()=>{const year=document.getElementById('soccerYear'),month=document.getElementById('soccerMonth'),type=document.getElementById('soccerType');const parts=[year?.selectedOptions?.[0]?.textContent||'All years',month?.value==='all'?'All months':month?.selectedOptions?.[0]?.textContent||'',type?.selectedOptions?.[0]?.textContent||'All sessions'];summary.textContent='⚙ Filters · '+parts.filter(Boolean).join(' · ');};
-   filterCard.parentElement.insertBefore(fold,filterCard);fold.append(summary,filterCard);
-   ['soccerYear','soccerMonth','soccerType'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>setTimeout(updateSummary,0)));
-   updateSummary();
+ if(filterCard){
+   const oldFold=document.getElementById('sxiFmcFilters');
+   if(oldFold){oldFold.parentNode.insertBefore(filterCard,oldFold);oldFold.remove();}
+   filterCard.id='sxiFootballFiltersCompact';
+   const title=filterCard.querySelector('h3');
+   if(title)title.textContent='Season & date filters';
  }
  const existing=document.getElementById('sxiFmc');
  if(existing){if(existing.previousElementSibling!==history)history.insertAdjacentElement('afterend',existing);return;}
@@ -51,7 +50,7 @@ function mount(){
  const goalCard=document.getElementById('v82Goals')?.closest('.card');
  if(goalCard)statsBody.append(goalCard);
  const overview=root.querySelector('.sxi-football-overview');
- if(overview&&!overview.closest('.sxi-fmc-season')){const summary=el('summary','','Season performance overview');const wrap=el('details','sxi-fmc-season');overview.parentNode.insertBefore(wrap,overview);wrap.append(summary,overview);}
+ if(overview){const wrapper=overview.closest('.sxi-fmc-season');if(wrapper){wrapper.parentNode.insertBefore(overview,wrapper);wrapper.remove();}overview.classList.add('sxi-fmc-running-summary');}
  const topGoals=root.querySelector('.sxi-football-goals');if(topGoals&&topGoals!==goalCard)statsBody.append(topGoals);
  const dribl=document.getElementById('v84SoccerMatch');if(dribl)statsBody.append(dribl);
  // Preserve the original session selection controls and all existing GPS handlers.
