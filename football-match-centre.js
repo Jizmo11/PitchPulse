@@ -14,7 +14,18 @@ function mount(){
  const root=document.getElementById('soccer');
  const gps=document.getElementById('sxiFootballGpsPanel');
  const history=document.querySelector('#soccer .sxi-football-history');
- if(!root||!gps||!history||document.getElementById('sxiFmc'))return;
+ if(!root||!history)return;
+ const filterCard=document.getElementById('soccerYear')?.closest('.card');
+ if(filterCard&&!document.getElementById('sxiFmcFilters')){
+   const fold=el('details','sxi-fmc-filters');fold.id='sxiFmcFilters';
+   const summary=el('summary','sxi-fmc-filter-summary');
+   const updateSummary=()=>{const year=document.getElementById('soccerYear'),month=document.getElementById('soccerMonth'),type=document.getElementById('soccerType');const parts=[year?.selectedOptions?.[0]?.textContent||'All years',month?.value==='all'?'All months':month?.selectedOptions?.[0]?.textContent||'',type?.selectedOptions?.[0]?.textContent||'All sessions'];summary.textContent='⚙ Filters · '+parts.filter(Boolean).join(' · ');};
+   filterCard.parentElement.insertBefore(fold,filterCard);fold.append(summary,filterCard);
+   ['soccerYear','soccerMonth','soccerType'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>setTimeout(updateSummary,0)));
+   updateSummary();
+ }
+ const existing=document.getElementById('sxiFmc');
+ if(existing){if(existing.previousElementSibling!==history)history.insertAdjacentElement('afterend',existing);return;}
  const centre=el('section','sxi-fmc');centre.id='sxiFmc';
  const head=el('div','sxi-fmc-head');
  head.append(el('h2','', 'Match Centre'),el('p','muted','Selected session · key performance at a glance'));
@@ -28,7 +39,7 @@ function mount(){
  const halvesSection=panel('First half vs second half','Match boundaries and half comparisons',false);
  const statsSection=panel('Goals, assists & match statistics','Manual contributions and saved Dribl match details',false);
  const advancedSection=panel('Advanced controls','Match timeline, boundaries and saved adjustments',false);
- const gpsBody=el('div','sxi-fmc-body');gpsBody.append(gps);gpsSection.append(gpsBody);
+ const gpsBody=el('div','sxi-fmc-body');if(gps)gpsBody.append(gps);else gpsBody.append(el('p','muted','Choose a session to load its GPS analysis.'));gpsSection.append(gpsBody);
  const workBody=el('div','sxi-fmc-body');workBody.append(el('p','muted','Speed and sprint breakdowns appear after GPS data is loaded.'));workSection.append(workBody);
  const halvesBody=el('div','sxi-fmc-body');halvesBody.append(el('p','muted','Use the existing Match timeline controls to calculate and compare halves.'));halvesSection.append(halvesBody);
  const statsBody=el('div','sxi-fmc-body');statsSection.append(statsBody);
@@ -40,13 +51,14 @@ function mount(){
  const goalCard=document.getElementById('v82Goals')?.closest('.card');
  if(goalCard)statsBody.append(goalCard);
  const overview=root.querySelector('.sxi-football-overview');
- if(overview){const summary=el('summary','','Season performance overview');const wrap=el('details','sxi-fmc-season');overview.parentNode.insertBefore(wrap,overview);wrap.append(summary,overview);}
+ if(overview&&!overview.closest('.sxi-fmc-season')){const summary=el('summary','','Season performance overview');const wrap=el('details','sxi-fmc-season');overview.parentNode.insertBefore(wrap,overview);wrap.append(summary,overview);}
  const topGoals=root.querySelector('.sxi-football-goals');if(topGoals&&topGoals!==goalCard)statsBody.append(topGoals);
  const dribl=document.getElementById('v84SoccerMatch');if(dribl)statsBody.append(dribl);
  // Preserve the original session selection controls and all existing GPS handlers.
- const originalGpsLabel=gps.querySelector('h3');if(originalGpsLabel)originalGpsLabel.classList.add('sxi-fmc-internal-title');
+ const originalGpsLabel=gps?.querySelector('h3');if(originalGpsLabel)originalGpsLabel.classList.add('sxi-fmc-internal-title');
  function update(){
    const focused=window.v7Focus?.kind==='soccer'?(typeof db!=='undefined'?db.matches?.[window.v7Focus.index]:null):null;
+   const liveGps=document.getElementById('sxiFootballGpsPanel');if(liveGps&&liveGps.parentElement!==gpsBody){gpsBody.replaceChildren(liveGps);}
    const selected=focused||null;
    const text=(value,unit)=>value===null||value===undefined||value===''?'—':String(value)+(unit||'');
    const number=(...values)=>values.find(v=>typeof v==='number'&&Number.isFinite(v));
@@ -72,5 +84,10 @@ function mount(){
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
 window.addEventListener('load',mount);
+// Existing Football UI can rebuild sections after filtering or selecting sessions.
+// Keep the Match Centre anchored immediately after the recent-session selector.
+const keepMounted=()=>{const h=document.querySelector('#soccer .sxi-football-history'),c=document.getElementById('sxiFmc');if(h&&c&&c.previousElementSibling!==h)h.insertAdjacentElement('afterend',c);else if(h&&!c)mount();};
+window.addEventListener('pageshow',keepMounted);
+document.addEventListener('click',e=>{if(e.target.closest('#soccer'))setTimeout(keepMounted,120);});
 let attempts=0;const retry=setInterval(()=>{mount();if(document.getElementById('sxiFmc')||++attempts>25)clearInterval(retry);},400);
 })();
