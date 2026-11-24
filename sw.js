@@ -1,4 +1,4 @@
-const CACHE='strideeleven-pwa-v54-football-responsive';
+const CACHE='strideeleven-pwa-v55-football-declutter';
 const ASSETS=['./','./index.html','./backup.js','./v84.js?v=95','./dribl-fixture-adapter.js?v=94','./manifest.webmanifest?brand=sxi-20261110','./icon-192.png?brand=sxi-20261110','./icon-512.png?brand=sxi-20261110','./favicon.png?brand=sxi-20261110','./splash-strideeleven.jpg'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('pitchpulse-pwa-')||key.startsWith('strideeleven-pwa-')).filter(key=>key!==CACHE).map(key=>caches.delete(key)))),self.clients.claim()])));
